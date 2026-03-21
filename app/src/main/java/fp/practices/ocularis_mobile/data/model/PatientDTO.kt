@@ -1,6 +1,7 @@
 package fp.practices.ocularis_mobile.data.model
 
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 data class PatientDTO(
     val id: Int?,
@@ -11,7 +12,7 @@ data class PatientDTO(
     val secondLastName: String?,
     val email: String?,
     val phone: String?,
-    val birthDate: LocalDate?,
+    val birthDate: String?,
     val address: String?
 )
 

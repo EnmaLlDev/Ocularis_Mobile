@@ -1,42 +1,32 @@
 package fp.practices.ocularis_mobile.viewmodel
-
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import fp.practices.ocularis_mobile.data.model.DoctorDTO
-import fp.practices.ocularis_mobile.data.model.PatientDTO
-import fp.practices.ocularis_mobile.data.repository.DoctorsRepository
-import fp.practices.ocularis_mobile.data.repository.PatientsRepository
+import fp.practices.ocularis_mobile.data.model.DetailsDTO
+import fp.practices.ocularis_mobile.data.repository.DetailsRepository
 import kotlinx.coroutines.launch
-
-class DoctorsViewModel(
-    private val repository: DoctorsRepository = DoctorsRepository()
+class DetailsViewModel(
+    private val repository: DetailsRepository = DetailsRepository()
 ) : ViewModel() {
-
-    private val _doctors = MutableLiveData<List<DoctorDTO>>(emptyList())
-    val doctors: LiveData<List<DoctorDTO>> = _doctors
-
+    private val _details = MutableLiveData<List<DetailsDTO>>(emptyList())
+    val details: LiveData<List<DetailsDTO>> = _details
     private val _isLoading = MutableLiveData(false)
     val isLoading: LiveData<Boolean> = _isLoading
-
     private val _error = MutableLiveData<String?>(null)
     val error: LiveData<String?> = _error
-
     private val _message = MutableLiveData<String?>(null)
     val message: LiveData<String?> = _message
-
     init {
-        loadDoctors()
+        loadDetails()
     }
-
-    fun loadDoctors() {
+    fun loadDetails() {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
             _message.value = null
             try {
-                _doctors.value = repository.getDoctors()
+                _details.value = repository.getDetails()
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error desconocido"
             } finally {
@@ -45,13 +35,13 @@ class DoctorsViewModel(
         }
     }
 
-    fun searchByLicense(license: String) {
+    fun loadByAppointment(appointmentId: Int) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
             _message.value = null
             try {
-                _doctors.value = repository.searchByLicense(license)
+                _details.value = repository.getByAppointment(appointmentId)
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error desconocido"
             } finally {
@@ -60,30 +50,15 @@ class DoctorsViewModel(
         }
     }
 
-    fun searchBySpecialty(terms: String) {
+    fun createDetail(detail: DetailsDTO) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
             _message.value = null
             try {
-                _doctors.value = repository.searchBySpecialty(terms)
-            } catch (e: Exception) {
-                _error.value = e.message ?: "Error desconocido"
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-
-    fun createDoctor(doctor: DoctorDTO) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            _error.value = null
-            _message.value = null
-            try {
-                repository.create(doctor)
-                _message.value = "Doctor creado"
-                _doctors.value = repository.getDoctors()
+                repository.create(detail)
+                _message.value = "Detalle creado"
+                _details.value = repository.getDetails()
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error al crear"
             } finally {
@@ -92,16 +67,16 @@ class DoctorsViewModel(
         }
     }
 
-    fun updateDoctor(id: Int, doctor: DoctorDTO) {
+    fun updateDetail(id: Int, detail: DetailsDTO) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
             _message.value = null
             try {
-                val ok = repository.update(id, doctor)
+                val ok = repository.update(id, detail)
                 if (ok) {
-                    _message.value = "Doctor actualizado"
-                    _doctors.value = repository.getDoctors()
+                    _message.value = "Detalle actualizado"
+                    _details.value = repository.getDetails()
                 } else {
                     _error.value = "No se pudo actualizar"
                 }
@@ -113,7 +88,7 @@ class DoctorsViewModel(
         }
     }
 
-    fun deleteDoctor(id: Int) {
+    fun deleteDetail(id: Int) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
@@ -121,8 +96,8 @@ class DoctorsViewModel(
             try {
                 val ok = repository.delete(id)
                 if (ok) {
-                    _message.value = "Doctor eliminado"
-                    _doctors.value = repository.getDoctors()
+                    _message.value = "Detalle eliminado"
+                    _details.value = repository.getDetails()
                 } else {
                     _error.value = "No se pudo eliminar"
                 }
@@ -134,4 +109,3 @@ class DoctorsViewModel(
         }
     }
 }
-

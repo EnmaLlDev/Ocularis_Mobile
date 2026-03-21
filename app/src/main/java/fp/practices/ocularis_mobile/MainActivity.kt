@@ -7,7 +7,16 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import fp.practices.ocularis_mobile.ui.screens.AppointmentsScreen
+import fp.practices.ocularis_mobile.ui.screens.DetailsScreen
+import fp.practices.ocularis_mobile.ui.screens.DoctorsScreen
 import fp.practices.ocularis_mobile.ui.screens.PatientsScreen
 import fp.practices.ocularis_mobile.ui.theme.Ocularis_MobileTheme
 
@@ -17,8 +26,26 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             Ocularis_MobileTheme {
+                var selectedTab by remember { mutableStateOf(0) }
+                val tabs = listOf("Pacientes", "Doctores", "Citas", "Detalles")
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    PatientsScreen(modifier = Modifier.padding(innerPadding))
+                    androidx.compose.foundation.layout.Column(modifier = Modifier.padding(innerPadding)) {
+                        TabRow(selectedTabIndex = selectedTab) {
+                            tabs.forEachIndexed { index, title ->
+                                Tab(
+                                    selected = selectedTab == index,
+                                    onClick = { selectedTab = index },
+                                    text = { androidx.compose.material3.Text(title) }
+                                )
+                            }
+                        }
+                        when (selectedTab) {
+                            0 -> PatientsScreen(modifier = Modifier.fillMaxSize())
+                            1 -> DoctorsScreen(modifier = Modifier.fillMaxSize())
+                            2 -> AppointmentsScreen(modifier = Modifier.fillMaxSize())
+                            3 -> DetailsScreen(modifier = Modifier.fillMaxSize())
+                        }
+                    }
                 }
             }
         }
