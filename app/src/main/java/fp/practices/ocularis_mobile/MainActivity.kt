@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import fp.practices.ocularis_mobile.ui.screens.HomeScreen
 import fp.practices.ocularis_mobile.ui.screens.AppointmentsScreen
 import fp.practices.ocularis_mobile.ui.screens.DetailsScreen
 import fp.practices.ocularis_mobile.ui.screens.DoctorsScreen
@@ -27,7 +28,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             Ocularis_MobileTheme {
                 var selectedTab by remember { mutableStateOf(0) }
-                val tabs = listOf("Pacientes", "Doctores", "Citas", "Detalles")
+                val tabs = listOf("Inicio", "Pacientes", "Doctores", "Citas", "Detalles")
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     androidx.compose.foundation.layout.Column(modifier = Modifier.padding(innerPadding)) {
                         TabRow(selectedTabIndex = selectedTab) {
@@ -40,10 +41,11 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         when (selectedTab) {
-                            0 -> PatientsScreen(modifier = Modifier.fillMaxSize())
-                            1 -> DoctorsScreen(modifier = Modifier.fillMaxSize())
-                            2 -> AppointmentsScreen(modifier = Modifier.fillMaxSize())
-                            3 -> DetailsScreen(modifier = Modifier.fillMaxSize())
+                            0 -> HomeScreen(modifier = Modifier.fillMaxSize())
+                            1 -> PatientsScreen(modifier = Modifier.fillMaxSize())
+                            2 -> DoctorsScreen(modifier = Modifier.fillMaxSize())
+                            3 -> AppointmentsScreen(modifier = Modifier.fillMaxSize())
+                            4 -> DetailsScreen(modifier = Modifier.fillMaxSize())
                         }
                     }
                 }

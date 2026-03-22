@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,11 +12,21 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,7 +48,6 @@ import fp.practices.ocularis_mobile.data.model.PatientDTO
 import fp.practices.ocularis_mobile.ui.theme.Ocularis_MobileTheme
 import fp.practices.ocularis_mobile.viewmodel.DetailsViewModel
 import java.time.LocalDate
-import java.time.LocalDateTime
 
 @Composable
 fun DetailsScreen(
@@ -80,28 +90,92 @@ private fun DetailsContent(
     onFilterByAppointment: (Int) -> Unit,
     onReload: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        DetailsCrudPanel(
-            onCreate = onCreate,
-            onUpdate = onUpdate,
-            onDelete = onDelete,
-            onFilterByAppointment = onFilterByAppointment,
-            onReload = onReload,
-            message = message
+    var currentAction by remember { mutableStateOf(DetailAction.LIST) }
+
+    Row(modifier = Modifier.fillMaxSize()) {
+        DetailSideNav(
+            currentAction = currentAction,
+            onActionSelected = { action ->
+                if (action == DetailAction.RELOAD) {
+                    onReload()
+                    currentAction = DetailAction.LIST
+                } else {
+                    currentAction = action
+                }
+            }
         )
-        Spacer(modifier = Modifier.height(12.dp))
-        DetailsList(details)
+        Column(modifier = Modifier.weight(1f)) {
+            DetailsCrudPanel(
+                currentAction = currentAction,
+                details = details,
+                onCreate = onCreate,
+                onUpdate = onUpdate,
+                onDelete = onDelete,
+                onFilterByAppointment = onFilterByAppointment,
+                onReload = onReload,
+                message = message,
+                onActionDone = { currentAction = DetailAction.LIST }
+            )
+        }
+    }
+}
+
+@Composable
+private fun DetailSideNav(
+    currentAction: DetailAction,
+    onActionSelected: (DetailAction) -> Unit
+) {
+    NavigationRail {
+        NavigationRailItem(
+            selected = currentAction == DetailAction.LIST,
+            onClick = { onActionSelected(DetailAction.LIST) },
+            icon = { Icon(Icons.Default.List, contentDescription = "Lista") },
+            label = { Text("Lista") }
+        )
+        NavigationRailItem(
+            selected = currentAction == DetailAction.CREATE,
+            onClick = { onActionSelected(DetailAction.CREATE) },
+            icon = { Icon(Icons.Default.Add, contentDescription = "Crear") },
+            label = { Text("Crear") }
+        )
+        NavigationRailItem(
+            selected = currentAction == DetailAction.UPDATE,
+            onClick = { onActionSelected(DetailAction.UPDATE) },
+            icon = { Icon(Icons.Default.Edit, contentDescription = "Actualizar") },
+            label = { Text("Actualizar") }
+        )
+        NavigationRailItem(
+            selected = currentAction == DetailAction.DELETE,
+            onClick = { onActionSelected(DetailAction.DELETE) },
+            icon = { Icon(Icons.Default.Delete, contentDescription = "Eliminar") },
+            label = { Text("Eliminar") }
+        )
+        NavigationRailItem(
+            selected = currentAction == DetailAction.FILTER_APPOINTMENT,
+            onClick = { onActionSelected(DetailAction.FILTER_APPOINTMENT) },
+            icon = { Icon(Icons.Default.Search, contentDescription = "Filtrar") },
+            label = { Text("Por cita") }
+        )
+        NavigationRailItem(
+            selected = currentAction == DetailAction.RELOAD,
+            onClick = { onActionSelected(DetailAction.RELOAD) },
+            icon = { Icon(Icons.Default.Refresh, contentDescription = "Recargar") },
+            label = { Text("Recargar") }
+        )
     }
 }
 
 @Composable
 private fun DetailsCrudPanel(
+    currentAction: DetailAction,
+    details: List<DetailsDTO>,
     onCreate: (DetailsDTO) -> Unit,
     onUpdate: (Int, DetailsDTO) -> Unit,
     onDelete: (Int) -> Unit,
     onFilterByAppointment: (Int) -> Unit,
     onReload: () -> Unit,
-    message: String?
+    message: String?,
+    onActionDone: () -> Unit
 ) {
     var id by remember { mutableStateOf("") }
     var appointmentId by remember { mutableStateOf("") }
@@ -112,88 +186,136 @@ private fun DetailsCrudPanel(
     var followup by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
 
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        Text("Panel Detalles", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        if (message != null) {
-            Text(text = message, color = MaterialTheme.colorScheme.primary)
-        }
-        if (localError != null) {
-            Text(text = localError ?: "", color = MaterialTheme.colorScheme.error)
-        }
-        OutlinedTextField(value = id, onValueChange = { id = it }, label = { Text("Id (actualizar/borrar)") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-        OutlinedTextField(value = appointmentId, onValueChange = { appointmentId = it }, label = { Text("Id Cita") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-        OutlinedTextField(value = diagnosis, onValueChange = { diagnosis = it }, label = { Text("Diagnóstico") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-        OutlinedTextField(value = treatment, onValueChange = { treatment = it }, label = { Text("Tratamiento") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-        OutlinedTextField(value = prescription, onValueChange = { prescription = it }, label = { Text("Prescripción") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-        OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notas") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-        OutlinedTextField(value = followup, onValueChange = { followup = it }, label = { Text("Seguimiento") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text("Detalles", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        message?.let { Text(text = it, color = MaterialTheme.colorScheme.primary) }
+        localError?.let { Text(text = it, color = MaterialTheme.colorScheme.error) }
 
-        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            ElevatedButton(onClick = {
-                localError = null
-                val appId = appointmentId.toIntOrNull()
-                if (appId == null) {
-                    localError = "Id de cita inválido"
-                    return@ElevatedButton
-                }
-                val dto = DetailsDTO(
-                    id = null,
-                    appointment = AppointmentDTO(id = appId, dateTime = null, patient = null, doctor = null, reason = null, status = null),
-                    diagnosis = diagnosis.ifBlank { null },
-                    prescription = prescription.ifBlank { null },
-                    notes = notes.ifBlank { null },
-                    treatment = treatment.ifBlank { null },
-                    followup = followup.ifBlank { null }
+        when (currentAction) {
+            DetailAction.LIST -> {
+                Spacer(modifier = Modifier.height(12.dp))
+                DetailsList(details)
+            }
+            DetailAction.CREATE, DetailAction.UPDATE -> {
+                DetailFormFields(
+                    id = id,
+                    onIdChange = { id = it },
+                    appointmentId = appointmentId,
+                    onAppointmentIdChange = { appointmentId = it },
+                    diagnosis = diagnosis,
+                    onDiagnosisChange = { diagnosis = it },
+                    treatment = treatment,
+                    onTreatmentChange = { treatment = it },
+                    prescription = prescription,
+                    onPrescriptionChange = { prescription = it },
+                    notes = notes,
+                    onNotesChange = { notes = it },
+                    followup = followup,
+                    onFollowupChange = { followup = it },
+                    showId = currentAction == DetailAction.UPDATE
                 )
-                onCreate(dto)
-            }) { Text("Crear") }
-
-            ElevatedButton(onClick = {
-                localError = null
-                val targetId = id.toIntOrNull()
-                val appId = appointmentId.toIntOrNull()
-                if (targetId == null || appId == null) {
-                    localError = "Ids inválidos"
-                    return@ElevatedButton
-                }
-                val dto = DetailsDTO(
-                    id = targetId,
-                    appointment = AppointmentDTO(id = appId, dateTime = null, patient = null, doctor = null, reason = null, status = null),
-                    diagnosis = diagnosis.ifBlank { null },
-                    prescription = prescription.ifBlank { null },
-                    notes = notes.ifBlank { null },
-                    treatment = treatment.ifBlank { null },
-                    followup = followup.ifBlank { null }
+                Spacer(modifier = Modifier.height(12.dp))
+                ElevatedButton(onClick = {
+                    localError = null
+                    val appId = appointmentId.toIntOrNull()
+                    if (appId == null) {
+                        localError = "Id de cita inválido"
+                        return@ElevatedButton
+                    }
+                    val dto = DetailsDTO(
+                        id = id.toIntOrNull(),
+                        appointment = AppointmentDTO(id = appId, dateTime = null, patient = null, doctor = null, reason = null, status = null),
+                        diagnosis = diagnosis.ifBlank { null },
+                        prescription = prescription.ifBlank { null },
+                        notes = notes.ifBlank { null },
+                        treatment = treatment.ifBlank { null },
+                        followup = followup.ifBlank { null }
+                    )
+                    if (currentAction == DetailAction.UPDATE) {
+                        val targetId = dto.id
+                        if (targetId == null) {
+                            localError = "Id requerido para actualizar"
+                            return@ElevatedButton
+                        }
+                        onUpdate(targetId, dto)
+                    } else {
+                        onCreate(dto.copy(id = null))
+                    }
+                    onActionDone()
+                }) { Text(if (currentAction == DetailAction.UPDATE) "Actualizar" else "Crear") }
+            }
+            DetailAction.DELETE -> {
+                OutlinedTextField(
+                    value = id,
+                    onValueChange = { id = it },
+                    label = { Text("Id a eliminar") },
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                 )
-                onUpdate(targetId, dto)
-            }) { Text("Actualizar") }
-
-            ElevatedButton(onClick = {
-                localError = null
-                val targetId = id.toIntOrNull()
-                if (targetId == null) {
-                    localError = "Id inválido"
-                    return@ElevatedButton
-                }
-                onDelete(targetId)
-            }) { Text("Eliminar") }
-
-            ElevatedButton(onClick = {
-                localError = null
-                val appId = appointmentId.toIntOrNull()
-                if (appId == null) {
-                    localError = "Id de cita inválido"
-                    return@ElevatedButton
-                }
-                onFilterByAppointment(appId)
-            }) { Text("Filtrar por cita") }
-
-            ElevatedButton(onClick = {
-                localError = null
+                Spacer(modifier = Modifier.height(12.dp))
+                ElevatedButton(onClick = {
+                    localError = null
+                    val targetId = id.toIntOrNull()
+                    if (targetId == null) {
+                        localError = "Id inválido"
+                        return@ElevatedButton
+                    }
+                    onDelete(targetId)
+                    onActionDone()
+                }) { Text("Eliminar") }
+            }
+            DetailAction.FILTER_APPOINTMENT -> {
+                OutlinedTextField(
+                    value = appointmentId,
+                    onValueChange = { appointmentId = it },
+                    label = { Text("Id Cita") },
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                ElevatedButton(onClick = {
+                    localError = null
+                    val appId = appointmentId.toIntOrNull()
+                    if (appId == null) {
+                        localError = "Id de cita inválido"
+                        return@ElevatedButton
+                    }
+                    onFilterByAppointment(appId)
+                }) { Text("Filtrar") }
+            }
+            DetailAction.RELOAD -> {
                 onReload()
-            }) { Text("Recargar") }
+                onActionDone()
+            }
         }
     }
+}
+
+@Composable
+private fun DetailFormFields(
+    id: String,
+    onIdChange: (String) -> Unit,
+    appointmentId: String,
+    onAppointmentIdChange: (String) -> Unit,
+    diagnosis: String,
+    onDiagnosisChange: (String) -> Unit,
+    treatment: String,
+    onTreatmentChange: (String) -> Unit,
+    prescription: String,
+    onPrescriptionChange: (String) -> Unit,
+    notes: String,
+    onNotesChange: (String) -> Unit,
+    followup: String,
+    onFollowupChange: (String) -> Unit,
+    showId: Boolean
+) {
+    if (showId) {
+        OutlinedTextField(value = id, onValueChange = onIdChange, label = { Text("Id") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+    }
+    OutlinedTextField(value = appointmentId, onValueChange = onAppointmentIdChange, label = { Text("Id Cita") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+    OutlinedTextField(value = diagnosis, onValueChange = onDiagnosisChange, label = { Text("Diagnóstico") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+    OutlinedTextField(value = treatment, onValueChange = onTreatmentChange, label = { Text("Tratamiento") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+    OutlinedTextField(value = prescription, onValueChange = onPrescriptionChange, label = { Text("Prescripción") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+    OutlinedTextField(value = notes, onValueChange = onNotesChange, label = { Text("Notas") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+    OutlinedTextField(value = followup, onValueChange = onFollowupChange, label = { Text("Seguimiento") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
 }
 
 @Composable
@@ -244,6 +366,8 @@ fun DetailItem(detail: DetailsDTO) {
     }
 }
 
+private enum class DetailAction { LIST, CREATE, UPDATE, DELETE, FILTER_APPOINTMENT, RELOAD }
+
 @Preview(showBackground = true)
 @Composable
 fun DetailItemPreview() {
@@ -253,7 +377,7 @@ fun DetailItemPreview() {
                 id = 1,
                 appointment = AppointmentDTO(
                     id = 1,
-                    dateTime = LocalDate.now() as String?,
+                    dateTime = LocalDate.now().toString(),
                     patient = PatientDTO(
                         id = 1,
                         dni = "123",

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,11 +12,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -78,26 +88,84 @@ private fun AppointmentsContent(
     onDelete: (Int) -> Unit,
     onReload: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        AppointmentCrudPanel(
-            onCreate = onCreate,
-            onUpdate = onUpdate,
-            onDelete = onDelete,
-            onReload = onReload,
-            message = message
+    var currentAction by remember { mutableStateOf(AppointmentAction.LIST) }
+
+    Row(modifier = Modifier.fillMaxSize()) {
+        AppointmentSideNav(
+            currentAction = currentAction,
+            onActionSelected = { action ->
+                if (action == AppointmentAction.RELOAD) {
+                    onReload()
+                    currentAction = AppointmentAction.LIST
+                } else {
+                    currentAction = action
+                }
+            }
         )
-        Spacer(modifier = Modifier.height(12.dp))
-        AppointmentsList(appointments)
+        Column(modifier = Modifier.weight(1f)) {
+            AppointmentCrudPanel(
+                currentAction = currentAction,
+                appointments = appointments,
+                onCreate = onCreate,
+                onUpdate = onUpdate,
+                onDelete = onDelete,
+                onReload = onReload,
+                message = message,
+                onActionDone = { currentAction = AppointmentAction.LIST }
+            )
+        }
+    }
+}
+
+@Composable
+private fun AppointmentSideNav(
+    currentAction: AppointmentAction,
+    onActionSelected: (AppointmentAction) -> Unit
+) {
+    NavigationRail {
+        NavigationRailItem(
+            selected = currentAction == AppointmentAction.LIST,
+            onClick = { onActionSelected(AppointmentAction.LIST) },
+            icon = { Icon(Icons.Default.List, contentDescription = "Lista") },
+            label = { Text("Lista") }
+        )
+        NavigationRailItem(
+            selected = currentAction == AppointmentAction.CREATE,
+            onClick = { onActionSelected(AppointmentAction.CREATE) },
+            icon = { Icon(Icons.Default.Add, contentDescription = "Crear") },
+            label = { Text("Crear") }
+        )
+        NavigationRailItem(
+            selected = currentAction == AppointmentAction.UPDATE,
+            onClick = { onActionSelected(AppointmentAction.UPDATE) },
+            icon = { Icon(Icons.Default.Edit, contentDescription = "Actualizar") },
+            label = { Text("Actualizar") }
+        )
+        NavigationRailItem(
+            selected = currentAction == AppointmentAction.DELETE,
+            onClick = { onActionSelected(AppointmentAction.DELETE) },
+            icon = { Icon(Icons.Default.Delete, contentDescription = "Eliminar") },
+            label = { Text("Eliminar") }
+        )
+        NavigationRailItem(
+            selected = currentAction == AppointmentAction.RELOAD,
+            onClick = { onActionSelected(AppointmentAction.RELOAD) },
+            icon = { Icon(Icons.Default.Refresh, contentDescription = "Recargar") },
+            label = { Text("Recargar") }
+        )
     }
 }
 
 @Composable
 private fun AppointmentCrudPanel(
+    currentAction: AppointmentAction,
+    appointments: List<AppointmentDTO>,
     onCreate: (AppointmentDTO) -> Unit,
     onUpdate: (Int, AppointmentDTO) -> Unit,
     onDelete: (Int) -> Unit,
     onReload: () -> Unit,
-    message: String?
+    message: String?,
+    onActionDone: () -> Unit
 ) {
     var id by remember { mutableStateOf("") }
     var patientId by remember { mutableStateOf("") }
@@ -107,83 +175,116 @@ private fun AppointmentCrudPanel(
     var status by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
 
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        Text("Panel Citas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        if (message != null) {
-            Text(text = message, color = MaterialTheme.colorScheme.primary)
-        }
-        if (localError != null) {
-            Text(text = localError ?: "", color = MaterialTheme.colorScheme.error)
-        }
-        OutlinedTextField(value = id, onValueChange = { id = it }, label = { Text("Id (actualizar/borrar)") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-        OutlinedTextField(value = patientId, onValueChange = { patientId = it }, label = { Text("Id Paciente") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-        OutlinedTextField(value = doctorId, onValueChange = { doctorId = it }, label = { Text("Id Doctor") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-        OutlinedTextField(value = dateTime, onValueChange = { dateTime = it }, label = { Text("Fecha/Hora (ISO)") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-        OutlinedTextField(value = reason, onValueChange = { reason = it }, label = { Text("Motivo") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-        OutlinedTextField(value = status, onValueChange = { status = it }, label = { Text("Estado (SCHEDULED/...)") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text("Citas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        message?.let { Text(text = it, color = MaterialTheme.colorScheme.primary) }
+        localError?.let { Text(text = it, color = MaterialTheme.colorScheme.error) }
 
-        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            ElevatedButton(onClick = {
-                localError = null
-                val patient = patientId.toIntOrNull()
-                val doctor = doctorId.toIntOrNull()
-                if (patient == null || doctor == null) {
-                    localError = "Ids de paciente/doctor inválidos"
-                    return@ElevatedButton
-                }
-                val statusEnum = status.takeIf { it.isNotBlank() }?.let {
-                    runCatching { StateAppoinment.valueOf(it.trim().uppercase()) }.getOrNull()
-                }
-                val dto = AppointmentDTO(
-                    id = null,
-                    dateTime = dateTime.ifBlank { null },
-                    patient = PatientDTO(id = patient, dni = null, firstName = "", secondName = null, lastName = "", secondLastName = null, email = null, phone = null, birthDate = null, address = null),
-                    doctor = DoctorDTO(id = doctor, firstName = "", secondName = null, lastName = "", secondLastName = null, dni = null, email = null, phone = null, licenseNumber = null, specialty = null),
-                    reason = reason.ifBlank { null },
-                    status = statusEnum
+        when (currentAction) {
+            AppointmentAction.LIST -> {
+                Spacer(modifier = Modifier.height(12.dp))
+                AppointmentsList(appointments)
+            }
+            AppointmentAction.CREATE, AppointmentAction.UPDATE -> {
+                AppointmentFormFields(
+                    id = id,
+                    onIdChange = { id = it },
+                    patientId = patientId,
+                    onPatientIdChange = { patientId = it },
+                    doctorId = doctorId,
+                    onDoctorIdChange = { doctorId = it },
+                    dateTime = dateTime,
+                    onDateTimeChange = { dateTime = it },
+                    reason = reason,
+                    onReasonChange = { reason = it },
+                    status = status,
+                    onStatusChange = { status = it },
+                    showId = currentAction == AppointmentAction.UPDATE
                 )
-                onCreate(dto)
-            }) { Text("Crear") }
-
-            ElevatedButton(onClick = {
-                localError = null
-                val targetId = id.toIntOrNull()
-                val patient = patientId.toIntOrNull()
-                val doctor = doctorId.toIntOrNull()
-                if (targetId == null || patient == null || doctor == null) {
-                    localError = "Ids inválidos"
-                    return@ElevatedButton
-                }
-                val statusEnum = status.takeIf { it.isNotBlank() }?.let {
-                    runCatching { StateAppoinment.valueOf(it.trim().uppercase()) }.getOrNull()
-                }
-                val dto = AppointmentDTO(
-                    id = targetId,
-                    dateTime = dateTime.ifBlank { null },
-                    patient = PatientDTO(id = patient, dni = null, firstName = "", secondName = null, lastName = "", secondLastName = null, email = null, phone = null, birthDate = null, address = null),
-                    doctor = DoctorDTO(id = doctor, firstName = "", secondName = null, lastName = "", secondLastName = null, dni = null, email = null, phone = null, licenseNumber = null, specialty = null),
-                    reason = reason.ifBlank { null },
-                    status = statusEnum
+                Spacer(modifier = Modifier.height(12.dp))
+                ElevatedButton(onClick = {
+                    localError = null
+                    val patient = patientId.toIntOrNull()
+                    val doctor = doctorId.toIntOrNull()
+                    if (patient == null || doctor == null) {
+                        localError = "Ids de paciente/doctor inválidos"
+                        return@ElevatedButton
+                    }
+                    val statusEnum = status.takeIf { it.isNotBlank() }?.let {
+                        runCatching { StateAppoinment.valueOf(it.trim().uppercase()) }.getOrNull()
+                    }
+                    val dto = AppointmentDTO(
+                        id = id.toIntOrNull(),
+                        dateTime = dateTime.ifBlank { null },
+                        patient = PatientDTO(id = patient, dni = null, firstName = "", secondName = null, lastName = "", secondLastName = null, email = null, phone = null, birthDate = null, address = null),
+                        doctor = DoctorDTO(id = doctor, firstName = "", secondName = null, lastName = "", secondLastName = null, dni = null, email = null, phone = null, licenseNumber = null, specialty = null),
+                        reason = reason.ifBlank { null },
+                        status = statusEnum
+                    )
+                    if (currentAction == AppointmentAction.UPDATE) {
+                        val targetId = dto.id
+                        if (targetId == null) {
+                            localError = "Id requerido para actualizar"
+                            return@ElevatedButton
+                        }
+                        onUpdate(targetId, dto)
+                    } else {
+                        onCreate(dto.copy(id = null))
+                    }
+                    onActionDone()
+                }) { Text(if (currentAction == AppointmentAction.UPDATE) "Actualizar" else "Crear") }
+            }
+            AppointmentAction.DELETE -> {
+                OutlinedTextField(
+                    value = id,
+                    onValueChange = { id = it },
+                    label = { Text("Id a eliminar") },
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                 )
-                onUpdate(targetId, dto)
-            }) { Text("Actualizar") }
-
-            ElevatedButton(onClick = {
-                localError = null
-                val targetId = id.toIntOrNull()
-                if (targetId == null) {
-                    localError = "Id inválido"
-                    return@ElevatedButton
-                }
-                onDelete(targetId)
-            }) { Text("Eliminar") }
-
-            ElevatedButton(onClick = {
-                localError = null
+                Spacer(modifier = Modifier.height(12.dp))
+                ElevatedButton(onClick = {
+                    localError = null
+                    val targetId = id.toIntOrNull()
+                    if (targetId == null) {
+                        localError = "Id inválido"
+                        return@ElevatedButton
+                    }
+                    onDelete(targetId)
+                    onActionDone()
+                }) { Text("Eliminar") }
+            }
+            AppointmentAction.RELOAD -> {
                 onReload()
-            }) { Text("Recargar") }
+                onActionDone()
+            }
         }
     }
+}
+
+@Composable
+private fun AppointmentFormFields(
+    id: String,
+    onIdChange: (String) -> Unit,
+    patientId: String,
+    onPatientIdChange: (String) -> Unit,
+    doctorId: String,
+    onDoctorIdChange: (String) -> Unit,
+    dateTime: String,
+    onDateTimeChange: (String) -> Unit,
+    reason: String,
+    onReasonChange: (String) -> Unit,
+    status: String,
+    onStatusChange: (String) -> Unit,
+    showId: Boolean
+) {
+    if (showId) {
+        OutlinedTextField(value = id, onValueChange = onIdChange, label = { Text("Id") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+    }
+    OutlinedTextField(value = patientId, onValueChange = onPatientIdChange, label = { Text("Id Paciente") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+    OutlinedTextField(value = doctorId, onValueChange = onDoctorIdChange, label = { Text("Id Doctor") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+    OutlinedTextField(value = dateTime, onValueChange = onDateTimeChange, label = { Text("Fecha/Hora (ISO)") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+    OutlinedTextField(value = reason, onValueChange = onReasonChange, label = { Text("Motivo") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+    OutlinedTextField(value = status, onValueChange = onStatusChange, label = { Text("Estado (SCHEDULED/...)") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
 }
 
 @Composable
@@ -233,6 +334,8 @@ fun AppointmentItem(appointment: AppointmentDTO) {
         }
     }
 }
+
+private enum class AppointmentAction { LIST, CREATE, UPDATE, DELETE, RELOAD }
 
 @Preview(showBackground = true)
 @Composable
