@@ -1,11 +1,10 @@
 package fp.practices.ocularis_mobile.data.repository
 
 import fp.practices.ocularis_mobile.data.model.DoctorDTO
-import fp.practices.ocularis_mobile.data.model.PatientDTO
 import fp.practices.ocularis_mobile.data.network.ApiService
 import fp.practices.ocularis_mobile.data.network.RetrofitClient
 
-class DoctorsRepository(private val api: ApiService = RetrofitClient.apiService) {
+class DoctorsRepository(private val api: ApiService = RetrofitClient.requireApiService()) {
     suspend fun getDoctors(): List<DoctorDTO> = api.getDoctors()
     suspend fun getDoctor(id: Int): DoctorDTO = api.getDoctor(id)
     suspend fun create(doctor: DoctorDTO): DoctorDTO = api.createDoctor(doctor)

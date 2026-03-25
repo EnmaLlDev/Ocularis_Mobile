@@ -4,6 +4,10 @@ import fp.practices.ocularis_mobile.data.model.AppointmentDTO
 import fp.practices.ocularis_mobile.data.model.DetailsDTO
 import fp.practices.ocularis_mobile.data.model.DoctorDTO
 import fp.practices.ocularis_mobile.data.model.PatientDTO
+import fp.practices.ocularis_mobile.data.model.auth.AuthResponse
+import fp.practices.ocularis_mobile.data.model.auth.LoginRequest
+import fp.practices.ocularis_mobile.data.model.auth.MeResponse
+import fp.practices.ocularis_mobile.data.model.auth.RefreshRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -13,6 +17,18 @@ import retrofit2.http.PUT
 import retrofit2.http.Path
 
 interface ApiService {
+    @POST("/auth/login")
+    suspend fun login(@Body request: LoginRequest): AuthResponse
+
+    @POST("/auth/refresh")
+    suspend fun refresh(@Body request: RefreshRequest): AuthResponse
+
+    @GET("/auth/me")
+    suspend fun me(): MeResponse
+
+    @POST("/auth/logout")
+    suspend fun logout(@Body request: RefreshRequest? = null): Response<Unit>
+
     @GET("/api/patient/getAll")
     suspend fun getPatients(): List<PatientDTO>
 

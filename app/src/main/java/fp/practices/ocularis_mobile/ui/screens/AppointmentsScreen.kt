@@ -13,10 +13,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -44,6 +44,7 @@ import fp.practices.ocularis_mobile.data.model.AppointmentDTO
 import fp.practices.ocularis_mobile.data.model.DoctorDTO
 import fp.practices.ocularis_mobile.data.model.PatientDTO
 import fp.practices.ocularis_mobile.data.model.StateAppoinment
+import fp.practices.ocularis_mobile.ui.auth.RoleAccess
 import fp.practices.ocularis_mobile.ui.theme.Ocularis_MobileTheme
 import fp.practices.ocularis_mobile.viewmodel.AppointmentsViewModel
 import java.time.LocalDate
@@ -52,6 +53,7 @@ import java.time.LocalDateTime
 @Composable
 fun AppointmentsScreen(
     modifier: Modifier = Modifier,
+    roles: Set<String> = emptySet(),
     viewModel: AppointmentsViewModel = viewModel()
 ) {
     val appointments by viewModel.appointments.observeAsState(emptyList())
@@ -69,6 +71,7 @@ fun AppointmentsScreen(
             )
             else -> AppointmentsContent(
                 appointments = appointments,
+                roles = roles,
                 message = message,
                 onCreate = viewModel::createAppointment,
                 onUpdate = viewModel::updateAppointment,
@@ -82,18 +85,34 @@ fun AppointmentsScreen(
 @Composable
 private fun AppointmentsContent(
     appointments: List<AppointmentDTO>,
+    roles: Set<String>,
     message: String?,
     onCreate: (AppointmentDTO) -> Unit,
     onUpdate: (Int, AppointmentDTO) -> Unit,
     onDelete: (Int) -> Unit,
     onReload: () -> Unit
 ) {
+    val canRead = RoleAccess.canReadAppointments(roles)
+    val canManage = RoleAccess.canManageAppointments(roles)
     var currentAction by remember { mutableStateOf(AppointmentAction.LIST) }
+
+    if (!canRead) {
+        PermissionRequiredPanel()
+        return
+    }
+
+    if (!canManage && currentAction != AppointmentAction.LIST && currentAction != AppointmentAction.RELOAD) {
+        currentAction = AppointmentAction.LIST
+    }
 
     Row(modifier = Modifier.fillMaxSize()) {
         AppointmentSideNav(
             currentAction = currentAction,
+            canManage = canManage,
             onActionSelected = { action ->
+                if (!canManage && action != AppointmentAction.LIST && action != AppointmentAction.RELOAD) {
+                    return@AppointmentSideNav
+                }
                 if (action == AppointmentAction.RELOAD) {
                     onReload()
                     currentAction = AppointmentAction.LIST
@@ -120,39 +139,49 @@ private fun AppointmentsContent(
 @Composable
 private fun AppointmentSideNav(
     currentAction: AppointmentAction,
+    canManage: Boolean,
     onActionSelected: (AppointmentAction) -> Unit
 ) {
     NavigationRail {
         NavigationRailItem(
             selected = currentAction == AppointmentAction.LIST,
             onClick = { onActionSelected(AppointmentAction.LIST) },
-            icon = { Icon(Icons.Default.List, contentDescription = "Lista") },
+            icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Lista") },
             label = { Text("Lista") }
         )
-        NavigationRailItem(
-            selected = currentAction == AppointmentAction.CREATE,
-            onClick = { onActionSelected(AppointmentAction.CREATE) },
-            icon = { Icon(Icons.Default.Add, contentDescription = "Crear") },
-            label = { Text("Crear") }
-        )
-        NavigationRailItem(
-            selected = currentAction == AppointmentAction.UPDATE,
-            onClick = { onActionSelected(AppointmentAction.UPDATE) },
-            icon = { Icon(Icons.Default.Edit, contentDescription = "Actualizar") },
-            label = { Text("Actualizar") }
-        )
-        NavigationRailItem(
-            selected = currentAction == AppointmentAction.DELETE,
-            onClick = { onActionSelected(AppointmentAction.DELETE) },
-            icon = { Icon(Icons.Default.Delete, contentDescription = "Eliminar") },
-            label = { Text("Eliminar") }
-        )
+        if (canManage) {
+            NavigationRailItem(
+                selected = currentAction == AppointmentAction.CREATE,
+                onClick = { onActionSelected(AppointmentAction.CREATE) },
+                icon = { Icon(Icons.Default.Add, contentDescription = "Crear") },
+                label = { Text("Crear") }
+            )
+            NavigationRailItem(
+                selected = currentAction == AppointmentAction.UPDATE,
+                onClick = { onActionSelected(AppointmentAction.UPDATE) },
+                icon = { Icon(Icons.Default.Edit, contentDescription = "Actualizar") },
+                label = { Text("Actualizar") }
+            )
+            NavigationRailItem(
+                selected = currentAction == AppointmentAction.DELETE,
+                onClick = { onActionSelected(AppointmentAction.DELETE) },
+                icon = { Icon(Icons.Default.Delete, contentDescription = "Eliminar") },
+                label = { Text("Eliminar") }
+            )
+        }
         NavigationRailItem(
             selected = currentAction == AppointmentAction.RELOAD,
             onClick = { onActionSelected(AppointmentAction.RELOAD) },
             icon = { Icon(Icons.Default.Refresh, contentDescription = "Recargar") },
             label = { Text("Recargar") }
         )
+    }
+}
+
+@Composable
+private fun PermissionRequiredPanel() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Permiso requerido para acceder a esta vista")
     }
 }
 

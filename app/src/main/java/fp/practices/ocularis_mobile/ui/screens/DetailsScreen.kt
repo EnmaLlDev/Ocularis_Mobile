@@ -13,10 +13,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
@@ -45,6 +45,7 @@ import fp.practices.ocularis_mobile.data.model.AppointmentDTO
 import fp.practices.ocularis_mobile.data.model.DetailsDTO
 import fp.practices.ocularis_mobile.data.model.DoctorDTO
 import fp.practices.ocularis_mobile.data.model.PatientDTO
+import fp.practices.ocularis_mobile.ui.auth.RoleAccess
 import fp.practices.ocularis_mobile.ui.theme.Ocularis_MobileTheme
 import fp.practices.ocularis_mobile.viewmodel.DetailsViewModel
 import java.time.LocalDate
@@ -52,6 +53,7 @@ import java.time.LocalDate
 @Composable
 fun DetailsScreen(
     modifier: Modifier = Modifier,
+    roles: Set<String> = emptySet(),
     viewModel: DetailsViewModel = viewModel()
 ) {
     val details by viewModel.details.observeAsState(emptyList())
@@ -69,6 +71,7 @@ fun DetailsScreen(
             )
             else -> DetailsContent(
                 details = details,
+                roles = roles,
                 message = message,
                 onCreate = viewModel::createDetail,
                 onUpdate = viewModel::updateDetail,
@@ -83,6 +86,7 @@ fun DetailsScreen(
 @Composable
 private fun DetailsContent(
     details: List<DetailsDTO>,
+    roles: Set<String>,
     message: String?,
     onCreate: (DetailsDTO) -> Unit,
     onUpdate: (Int, DetailsDTO) -> Unit,
@@ -90,12 +94,27 @@ private fun DetailsContent(
     onFilterByAppointment: (Int) -> Unit,
     onReload: () -> Unit
 ) {
+    val canRead = RoleAccess.canReadDetails(roles)
+    val canManage = RoleAccess.canManageDetails(roles)
     var currentAction by remember { mutableStateOf(DetailAction.LIST) }
+
+    if (!canRead) {
+        PermissionRequiredPanel()
+        return
+    }
+
+    if (!canManage && currentAction != DetailAction.LIST && currentAction != DetailAction.RELOAD) {
+        currentAction = DetailAction.LIST
+    }
 
     Row(modifier = Modifier.fillMaxSize()) {
         DetailSideNav(
             currentAction = currentAction,
+            canManage = canManage,
             onActionSelected = { action ->
+                if (!canManage && action != DetailAction.LIST && action != DetailAction.RELOAD) {
+                    return@DetailSideNav
+                }
                 if (action == DetailAction.RELOAD) {
                     onReload()
                     currentAction = DetailAction.LIST
@@ -123,45 +142,55 @@ private fun DetailsContent(
 @Composable
 private fun DetailSideNav(
     currentAction: DetailAction,
+    canManage: Boolean,
     onActionSelected: (DetailAction) -> Unit
 ) {
     NavigationRail {
         NavigationRailItem(
             selected = currentAction == DetailAction.LIST,
             onClick = { onActionSelected(DetailAction.LIST) },
-            icon = { Icon(Icons.Default.List, contentDescription = "Lista") },
+            icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Lista") },
             label = { Text("Lista") }
         )
-        NavigationRailItem(
-            selected = currentAction == DetailAction.CREATE,
-            onClick = { onActionSelected(DetailAction.CREATE) },
-            icon = { Icon(Icons.Default.Add, contentDescription = "Crear") },
-            label = { Text("Crear") }
-        )
-        NavigationRailItem(
-            selected = currentAction == DetailAction.UPDATE,
-            onClick = { onActionSelected(DetailAction.UPDATE) },
-            icon = { Icon(Icons.Default.Edit, contentDescription = "Actualizar") },
-            label = { Text("Actualizar") }
-        )
-        NavigationRailItem(
-            selected = currentAction == DetailAction.DELETE,
-            onClick = { onActionSelected(DetailAction.DELETE) },
-            icon = { Icon(Icons.Default.Delete, contentDescription = "Eliminar") },
-            label = { Text("Eliminar") }
-        )
-        NavigationRailItem(
-            selected = currentAction == DetailAction.FILTER_APPOINTMENT,
-            onClick = { onActionSelected(DetailAction.FILTER_APPOINTMENT) },
-            icon = { Icon(Icons.Default.Search, contentDescription = "Filtrar") },
-            label = { Text("Por cita") }
-        )
+        if (canManage) {
+            NavigationRailItem(
+                selected = currentAction == DetailAction.CREATE,
+                onClick = { onActionSelected(DetailAction.CREATE) },
+                icon = { Icon(Icons.Default.Add, contentDescription = "Crear") },
+                label = { Text("Crear") }
+            )
+            NavigationRailItem(
+                selected = currentAction == DetailAction.UPDATE,
+                onClick = { onActionSelected(DetailAction.UPDATE) },
+                icon = { Icon(Icons.Default.Edit, contentDescription = "Actualizar") },
+                label = { Text("Actualizar") }
+            )
+            NavigationRailItem(
+                selected = currentAction == DetailAction.DELETE,
+                onClick = { onActionSelected(DetailAction.DELETE) },
+                icon = { Icon(Icons.Default.Delete, contentDescription = "Eliminar") },
+                label = { Text("Eliminar") }
+            )
+            NavigationRailItem(
+                selected = currentAction == DetailAction.FILTER_APPOINTMENT,
+                onClick = { onActionSelected(DetailAction.FILTER_APPOINTMENT) },
+                icon = { Icon(Icons.Default.Search, contentDescription = "Filtrar") },
+                label = { Text("Por cita") }
+            )
+        }
         NavigationRailItem(
             selected = currentAction == DetailAction.RELOAD,
             onClick = { onActionSelected(DetailAction.RELOAD) },
             icon = { Icon(Icons.Default.Refresh, contentDescription = "Recargar") },
             label = { Text("Recargar") }
         )
+    }
+}
+
+@Composable
+private fun PermissionRequiredPanel() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Permiso requerido para acceder a esta vista")
     }
 }
 

@@ -13,10 +13,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
@@ -42,6 +42,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import fp.practices.ocularis_mobile.data.model.PatientDTO
+import fp.practices.ocularis_mobile.ui.auth.RoleAccess
 import fp.practices.ocularis_mobile.ui.theme.Ocularis_MobileTheme
 import fp.practices.ocularis_mobile.viewmodel.PatientsViewModel
 import java.time.LocalDate
@@ -49,6 +50,7 @@ import java.time.LocalDate
 @Composable
 fun PatientsScreen(
     modifier: Modifier = Modifier,
+    roles: Set<String> = emptySet(),
     viewModel: PatientsViewModel = viewModel()
 ) {
     val patients by viewModel.patients.observeAsState(emptyList())
@@ -72,6 +74,7 @@ fun PatientsScreen(
 
             else -> PatientsContent(
                 patients = patients,
+                roles = roles,
                 message = message,
                 onCreate = viewModel::createPatient,
                 onUpdate = viewModel::updatePatient,
@@ -86,6 +89,7 @@ fun PatientsScreen(
 @Composable
 private fun PatientsContent(
     patients: List<PatientDTO>,
+    roles: Set<String>,
     message: String?,
     onCreate: (PatientDTO) -> Unit,
     onUpdate: (Int, PatientDTO) -> Unit,
@@ -93,12 +97,27 @@ private fun PatientsContent(
     onSearchByAddress: (String) -> Unit,
     onReload: () -> Unit
 ) {
+    val canRead = RoleAccess.canReadPatients(roles)
+    val canManage = RoleAccess.canManagePatients(roles)
     var currentAction by remember { mutableStateOf(PatientAction.LIST) }
+
+    if (!canRead) {
+        PermissionRequiredPanel()
+        return
+    }
+
+    if (!canManage && currentAction != PatientAction.LIST && currentAction != PatientAction.RELOAD) {
+        currentAction = PatientAction.LIST
+    }
 
     Row(modifier = Modifier.fillMaxSize()) {
         PatientSideNav(
             currentAction = currentAction,
+            canManage = canManage,
             onActionSelected = { action ->
+                if (!canManage && action != PatientAction.LIST && action != PatientAction.RELOAD) {
+                    return@PatientSideNav
+                }
                 if (action == PatientAction.RELOAD) {
                     onReload()
                     currentAction = PatientAction.LIST
@@ -126,45 +145,55 @@ private fun PatientsContent(
 @Composable
 private fun PatientSideNav(
     currentAction: PatientAction,
+    canManage: Boolean,
     onActionSelected: (PatientAction) -> Unit
 ) {
     NavigationRail {
         NavigationRailItem(
             selected = currentAction == PatientAction.LIST,
             onClick = { onActionSelected(PatientAction.LIST) },
-            icon = { Icon(Icons.Default.List, contentDescription = "Lista") },
+            icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Lista") },
             label = { Text("Lista") }
         )
-        NavigationRailItem(
-            selected = currentAction == PatientAction.CREATE,
-            onClick = { onActionSelected(PatientAction.CREATE) },
-            icon = { Icon(Icons.Default.Add, contentDescription = "Crear") },
-            label = { Text("Crear") }
-        )
-        NavigationRailItem(
-            selected = currentAction == PatientAction.UPDATE,
-            onClick = { onActionSelected(PatientAction.UPDATE) },
-            icon = { Icon(Icons.Default.Edit, contentDescription = "Actualizar") },
-            label = { Text("Actualizar") }
-        )
-        NavigationRailItem(
-            selected = currentAction == PatientAction.DELETE,
-            onClick = { onActionSelected(PatientAction.DELETE) },
-            icon = { Icon(Icons.Default.Delete, contentDescription = "Eliminar") },
-            label = { Text("Eliminar") }
-        )
-        NavigationRailItem(
-            selected = currentAction == PatientAction.SEARCH,
-            onClick = { onActionSelected(PatientAction.SEARCH) },
-            icon = { Icon(Icons.Default.Search, contentDescription = "Buscar") },
-            label = { Text("Buscar") }
-        )
+        if (canManage) {
+            NavigationRailItem(
+                selected = currentAction == PatientAction.CREATE,
+                onClick = { onActionSelected(PatientAction.CREATE) },
+                icon = { Icon(Icons.Default.Add, contentDescription = "Crear") },
+                label = { Text("Crear") }
+            )
+            NavigationRailItem(
+                selected = currentAction == PatientAction.UPDATE,
+                onClick = { onActionSelected(PatientAction.UPDATE) },
+                icon = { Icon(Icons.Default.Edit, contentDescription = "Actualizar") },
+                label = { Text("Actualizar") }
+            )
+            NavigationRailItem(
+                selected = currentAction == PatientAction.DELETE,
+                onClick = { onActionSelected(PatientAction.DELETE) },
+                icon = { Icon(Icons.Default.Delete, contentDescription = "Eliminar") },
+                label = { Text("Eliminar") }
+            )
+            NavigationRailItem(
+                selected = currentAction == PatientAction.SEARCH,
+                onClick = { onActionSelected(PatientAction.SEARCH) },
+                icon = { Icon(Icons.Default.Search, contentDescription = "Buscar") },
+                label = { Text("Buscar") }
+            )
+        }
         NavigationRailItem(
             selected = currentAction == PatientAction.RELOAD,
             onClick = { onActionSelected(PatientAction.RELOAD) },
             icon = { Icon(Icons.Default.Refresh, contentDescription = "Recargar") },
             label = { Text("Recargar") }
         )
+    }
+}
+
+@Composable
+private fun PermissionRequiredPanel() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Permiso requerido para acceder a esta vista")
     }
 }
 

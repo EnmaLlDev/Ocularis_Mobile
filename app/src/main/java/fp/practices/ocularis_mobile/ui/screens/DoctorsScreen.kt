@@ -13,10 +13,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
@@ -42,12 +42,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import fp.practices.ocularis_mobile.data.model.DoctorDTO
+import fp.practices.ocularis_mobile.ui.auth.RoleAccess
 import fp.practices.ocularis_mobile.ui.theme.Ocularis_MobileTheme
 import fp.practices.ocularis_mobile.viewmodel.DoctorsViewModel
 
 @Composable
 fun DoctorsScreen(
     modifier: Modifier = Modifier,
+    roles: Set<String> = emptySet(),
     viewModel: DoctorsViewModel = viewModel()
 ) {
     val doctors by viewModel.doctors.observeAsState(emptyList())
@@ -71,6 +73,7 @@ fun DoctorsScreen(
 
             else -> DoctorsContent(
                 doctors = doctors,
+                roles = roles,
                 message = message,
                 onCreate = viewModel::createDoctor,
                 onUpdate = viewModel::updateDoctor,
@@ -86,6 +89,7 @@ fun DoctorsScreen(
 @Composable
 private fun DoctorsContent(
     doctors: List<DoctorDTO>,
+    roles: Set<String>,
     message: String?,
     onCreate: (DoctorDTO) -> Unit,
     onUpdate: (Int, DoctorDTO) -> Unit,
@@ -94,12 +98,27 @@ private fun DoctorsContent(
     onSearchBySpecialty: (String) -> Unit,
     onReload: () -> Unit
 ) {
+    val canRead = RoleAccess.canReadDoctors(roles)
+    val canManage = RoleAccess.canManageDoctors(roles)
     var currentAction by remember { mutableStateOf(DoctorAction.LIST) }
+
+    if (!canRead) {
+        PermissionRequiredPanel()
+        return
+    }
+
+    if (!canManage && currentAction != DoctorAction.LIST && currentAction != DoctorAction.RELOAD) {
+        currentAction = DoctorAction.LIST
+    }
 
     Row(modifier = Modifier.fillMaxSize()) {
         DoctorSideNav(
             currentAction = currentAction,
+            canManage = canManage,
             onActionSelected = { action ->
+                if (!canManage && action != DoctorAction.LIST && action != DoctorAction.RELOAD) {
+                    return@DoctorSideNav
+                }
                 if (action == DoctorAction.RELOAD) {
                     onReload()
                     currentAction = DoctorAction.LIST
@@ -128,51 +147,63 @@ private fun DoctorsContent(
 @Composable
 private fun DoctorSideNav(
     currentAction: DoctorAction,
+    canManage: Boolean,
     onActionSelected: (DoctorAction) -> Unit
 ) {
     NavigationRail {
         NavigationRailItem(
             selected = currentAction == DoctorAction.LIST,
             onClick = { onActionSelected(DoctorAction.LIST) },
-            icon = { Icon(Icons.Default.List, contentDescription = "Lista") },
+            icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Lista") },
             label = { Text("Lista") }
         )
-        NavigationRailItem(
-            selected = currentAction == DoctorAction.CREATE,
-            onClick = { onActionSelected(DoctorAction.CREATE) },
-            icon = { Icon(Icons.Default.Add, contentDescription = "Crear") },
-            label = { Text("Crear") }
-        )
-        NavigationRailItem(
-            selected = currentAction == DoctorAction.UPDATE,
-            onClick = { onActionSelected(DoctorAction.UPDATE) },
-            icon = { Icon(Icons.Default.Edit, contentDescription = "Actualizar") },
-            label = { Text("Actualizar") }
-        )
-        NavigationRailItem(
-            selected = currentAction == DoctorAction.DELETE,
-            onClick = { onActionSelected(DoctorAction.DELETE) },
-            icon = { Icon(Icons.Default.Delete, contentDescription = "Eliminar") },
-            label = { Text("Eliminar") }
-        )
-        NavigationRailItem(
-            selected = currentAction == DoctorAction.SEARCH_LICENSE,
-            onClick = { onActionSelected(DoctorAction.SEARCH_LICENSE) },
-            icon = { Icon(Icons.Default.Search, contentDescription = "Licencia") },
-            label = { Text("Licencia") }
-        )
-        NavigationRailItem(
-            selected = currentAction == DoctorAction.SEARCH_SPECIALTY,
-            onClick = { onActionSelected(DoctorAction.SEARCH_SPECIALTY) },
-            icon = { Icon(Icons.Default.Search, contentDescription = "Especialidad") },
-            label = { Text("Especialidad") }
-        )
+        if (canManage) {
+            NavigationRailItem(
+                selected = currentAction == DoctorAction.CREATE,
+                onClick = { onActionSelected(DoctorAction.CREATE) },
+                icon = { Icon(Icons.Default.Add, contentDescription = "Crear") },
+                label = { Text("Crear") }
+            )
+            NavigationRailItem(
+                selected = currentAction == DoctorAction.UPDATE,
+                onClick = { onActionSelected(DoctorAction.UPDATE) },
+                icon = { Icon(Icons.Default.Edit, contentDescription = "Actualizar") },
+                label = { Text("Actualizar") }
+            )
+            NavigationRailItem(
+                selected = currentAction == DoctorAction.DELETE,
+                onClick = { onActionSelected(DoctorAction.DELETE) },
+                icon = { Icon(Icons.Default.Delete, contentDescription = "Eliminar") },
+                label = { Text("Eliminar") }
+            )
+        }
+        if (canManage) {
+            NavigationRailItem(
+                selected = currentAction == DoctorAction.SEARCH_LICENSE,
+                onClick = { onActionSelected(DoctorAction.SEARCH_LICENSE) },
+                icon = { Icon(Icons.Default.Search, contentDescription = "Licencia") },
+                label = { Text("Licencia") }
+            )
+            NavigationRailItem(
+                selected = currentAction == DoctorAction.SEARCH_SPECIALTY,
+                onClick = { onActionSelected(DoctorAction.SEARCH_SPECIALTY) },
+                icon = { Icon(Icons.Default.Search, contentDescription = "Especialidad") },
+                label = { Text("Especialidad") }
+            )
+        }
         NavigationRailItem(
             selected = currentAction == DoctorAction.RELOAD,
             onClick = { onActionSelected(DoctorAction.RELOAD) },
             icon = { Icon(Icons.Default.Refresh, contentDescription = "Recargar") },
             label = { Text("Recargar") }
         )
+    }
+}
+
+@Composable
+private fun PermissionRequiredPanel() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Permiso requerido para acceder a esta vista")
     }
 }
 
