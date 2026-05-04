@@ -1,33 +1,27 @@
 package fp.practices.ocularis_mobile.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedButton
-import androidx.compose.material3.Icon
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,15 +31,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import fp.practices.ocularis_mobile.data.model.PatientDTO
 import fp.practices.ocularis_mobile.ui.auth.RoleAccess
-import fp.practices.ocularis_mobile.ui.theme.Ocularis_MobileTheme
+import fp.practices.ocularis_mobile.ui.theme.DarkBackground
+import fp.practices.ocularis_mobile.ui.theme.DarkSurface
+import fp.practices.ocularis_mobile.ui.theme.LightText
+import fp.practices.ocularis_mobile.ui.theme.MediumText
+import fp.practices.ocularis_mobile.ui.theme.PrimaryBlue
+import fp.practices.ocularis_mobile.ui.theme.VibrantBlue
 import fp.practices.ocularis_mobile.viewmodel.PatientsViewModel
-import java.time.LocalDate
 
 @Composable
 fun PatientsScreen(
@@ -58,20 +56,10 @@ fun PatientsScreen(
     val error by viewModel.error.observeAsState(null)
     val message by viewModel.message.observeAsState(null)
 
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(modifier = modifier.fillMaxSize().background(DarkBackground)) {
         when {
-            isLoading -> {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            }
-
-            error != null -> {
-                Text(
-                    text = "Error: $error",
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
-
+            isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = VibrantBlue)
+            error != null -> Text("Error: $error", color = MaterialTheme.colorScheme.error, modifier = Modifier.align(Alignment.Center))
             else -> PatientsContent(
                 patients = patients,
                 roles = roles,
@@ -106,18 +94,12 @@ private fun PatientsContent(
         return
     }
 
-    if (!canManage && currentAction != PatientAction.LIST && currentAction != PatientAction.RELOAD) {
-        currentAction = PatientAction.LIST
-    }
-
-    Row(modifier = Modifier.fillMaxSize()) {
-        PatientSideNav(
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        ActionChips(
             currentAction = currentAction,
             canManage = canManage,
-            onActionSelected = { action ->
-                if (!canManage && action != PatientAction.LIST && action != PatientAction.RELOAD) {
-                    return@PatientSideNav
-                }
+            onSelect = { action ->
+                if (!canManage && action != PatientAction.LIST && action != PatientAction.RELOAD) return@ActionChips
                 if (action == PatientAction.RELOAD) {
                     onReload()
                     currentAction = PatientAction.LIST
@@ -126,74 +108,54 @@ private fun PatientsContent(
                 }
             }
         )
-        Column(modifier = Modifier.weight(1f)) {
-            PatientCrudPanel(
-                currentAction = currentAction,
-                patients = patients,
-                onCreate = onCreate,
-                onUpdate = onUpdate,
-                onDelete = onDelete,
-                onSearchByAddress = onSearchByAddress,
-                onReload = onReload,
-                message = message,
-                onActionDone = { currentAction = PatientAction.LIST }
-            )
-        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        PatientCrudPanel(
+            currentAction = currentAction,
+            patients = patients,
+            onCreate = onCreate,
+            onUpdate = onUpdate,
+            onDelete = onDelete,
+            onSearchByAddress = onSearchByAddress,
+            message = message,
+            onActionDone = { currentAction = PatientAction.LIST }
+        )
     }
 }
 
 @Composable
-private fun PatientSideNav(
+private fun ActionChips(
     currentAction: PatientAction,
     canManage: Boolean,
-    onActionSelected: (PatientAction) -> Unit
+    onSelect: (PatientAction) -> Unit
 ) {
-    NavigationRail {
-        NavigationRailItem(
-            selected = currentAction == PatientAction.LIST,
-            onClick = { onActionSelected(PatientAction.LIST) },
-            icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Lista") },
-            label = { Text("Lista") }
-        )
+    val items = buildList {
+        add(PatientAction.LIST)
         if (canManage) {
-            NavigationRailItem(
-                selected = currentAction == PatientAction.CREATE,
-                onClick = { onActionSelected(PatientAction.CREATE) },
-                icon = { Icon(Icons.Default.Add, contentDescription = "Crear") },
-                label = { Text("Crear") }
-            )
-            NavigationRailItem(
-                selected = currentAction == PatientAction.UPDATE,
-                onClick = { onActionSelected(PatientAction.UPDATE) },
-                icon = { Icon(Icons.Default.Edit, contentDescription = "Actualizar") },
-                label = { Text("Actualizar") }
-            )
-            NavigationRailItem(
-                selected = currentAction == PatientAction.DELETE,
-                onClick = { onActionSelected(PatientAction.DELETE) },
-                icon = { Icon(Icons.Default.Delete, contentDescription = "Eliminar") },
-                label = { Text("Eliminar") }
-            )
-            NavigationRailItem(
-                selected = currentAction == PatientAction.SEARCH,
-                onClick = { onActionSelected(PatientAction.SEARCH) },
-                icon = { Icon(Icons.Default.Search, contentDescription = "Buscar") },
-                label = { Text("Buscar") }
+            add(PatientAction.CREATE)
+            add(PatientAction.UPDATE)
+            add(PatientAction.DELETE)
+            add(PatientAction.SEARCH)
+        }
+        add(PatientAction.RELOAD)
+    }
+
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(items) { action ->
+            FilterChip(
+                selected = currentAction == action,
+                onClick = { onSelect(action) },
+                label = { Text(action.label) }
             )
         }
-        NavigationRailItem(
-            selected = currentAction == PatientAction.RELOAD,
-            onClick = { onActionSelected(PatientAction.RELOAD) },
-            icon = { Icon(Icons.Default.Refresh, contentDescription = "Recargar") },
-            label = { Text("Recargar") }
-        )
     }
 }
 
 @Composable
 private fun PermissionRequiredPanel() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Permiso requerido para acceder a esta vista")
+        Text("Permiso requerido para acceder a esta vista", color = LightText)
     }
 }
 
@@ -205,7 +167,6 @@ private fun PatientCrudPanel(
     onUpdate: (Int, PatientDTO) -> Unit,
     onDelete: (Int) -> Unit,
     onSearchByAddress: (String) -> Unit,
-    onReload: () -> Unit,
     message: String?,
     onActionDone: () -> Unit
 ) {
@@ -218,37 +179,27 @@ private fun PatientCrudPanel(
     var address by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text("Pacientes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        message?.let { Text(text = it, color = MaterialTheme.colorScheme.primary) }
-        localError?.let { Text(text = it, color = MaterialTheme.colorScheme.error) }
+    Column {
+        Text("Pacientes", style = MaterialTheme.typography.titleLarge, color = LightText)
+        message?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+        localError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 
         when (currentAction) {
             PatientAction.LIST -> {
-                Spacer(modifier = Modifier.height(12.dp))
-                PatientsList(patients = patients)
+                Spacer(modifier = Modifier.height(8.dp))
+                PatientsList(patients)
             }
+
             PatientAction.CREATE, PatientAction.UPDATE -> {
-                PatientFormFields(
-                    id = id,
-                    onIdChange = { id = it },
-                    firstName = firstName,
-                    onFirstNameChange = { firstName = it },
-                    lastName = lastName,
-                    onLastNameChange = { lastName = it },
-                    dni = dni,
-                    onDniChange = { dni = it },
-                    email = email,
-                    onEmailChange = { email = it },
-                    phone = phone,
-                    onPhoneChange = { phone = it },
-                    address = address,
-                    onAddressChange = { address = it },
-                    showId = currentAction == PatientAction.UPDATE
-                )
+                OutlinedTextField(value = id, onValueChange = { id = it }, label = { Text("Id (solo actualizar)") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                OutlinedTextField(value = firstName, onValueChange = { firstName = it }, label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                OutlinedTextField(value = lastName, onValueChange = { lastName = it }, label = { Text("Apellidos") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                OutlinedTextField(value = dni, onValueChange = { dni = it }, label = { Text("DNI") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Teléfono") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                OutlinedTextField(value = address, onValueChange = { address = it }, label = { Text("Dirección") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
                 Spacer(modifier = Modifier.height(12.dp))
                 ElevatedButton(onClick = {
-                    localError = null
                     val dto = PatientDTO(
                         id = id.toIntOrNull(),
                         dni = dni.ifBlank { null },
@@ -276,16 +227,11 @@ private fun PatientCrudPanel(
                     Text(if (currentAction == PatientAction.UPDATE) "Actualizar" else "Crear")
                 }
             }
+
             PatientAction.DELETE -> {
-                OutlinedTextField(
-                    value = id,
-                    onValueChange = { id = it },
-                    label = { Text("Id a eliminar") },
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-                )
+                OutlinedTextField(value = id, onValueChange = { id = it }, label = { Text("Id a eliminar") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
                 Spacer(modifier = Modifier.height(12.dp))
                 ElevatedButton(onClick = {
-                    localError = null
                     val targetId = id.toIntOrNull()
                     if (targetId == null) {
                         localError = "Id inválido"
@@ -295,133 +241,54 @@ private fun PatientCrudPanel(
                     onActionDone()
                 }) { Text("Eliminar") }
             }
+
             PatientAction.SEARCH -> {
-                OutlinedTextField(
-                    value = address,
-                    onValueChange = { address = it },
-                    label = { Text("Dirección") },
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-                )
+                OutlinedTextField(value = address, onValueChange = { address = it }, label = { Text("Dirección") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
                 Spacer(modifier = Modifier.height(12.dp))
                 ElevatedButton(onClick = {
-                    localError = null
                     if (address.isBlank()) {
                         localError = "Ingresa una dirección"
                         return@ElevatedButton
                     }
                     onSearchByAddress(address)
+                    onActionDone()
                 }) { Text("Buscar") }
             }
-            PatientAction.RELOAD -> {
-                onReload()
-                onActionDone()
+
+            PatientAction.RELOAD -> Unit
+        }
+    }
+}
+
+@Composable
+private fun PatientsList(patients: List<PatientDTO>) {
+    LazyColumn(
+        contentPadding = PaddingValues(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        items(patients) { patient ->
+            Card(
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = DarkSurface)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("${patient.firstName} ${patient.lastName}", fontWeight = FontWeight.Bold, color = LightText)
+                    Text("DNI: ${patient.dni ?: "N/D"}", color = MediumText)
+                    Text("Email: ${patient.email ?: "N/D"}", color = MediumText)
+                    Text("Teléfono: ${patient.phone ?: "N/D"}", color = MediumText)
+                    Text("Dirección: ${patient.address ?: "N/D"}", color = MediumText)
+                }
             }
         }
     }
 }
 
-@Composable
-private fun PatientFormFields(
-    id: String,
-    onIdChange: (String) -> Unit,
-    firstName: String,
-    onFirstNameChange: (String) -> Unit,
-    lastName: String,
-    onLastNameChange: (String) -> Unit,
-    dni: String,
-    onDniChange: (String) -> Unit,
-    email: String,
-    onEmailChange: (String) -> Unit,
-    phone: String,
-    onPhoneChange: (String) -> Unit,
-    address: String,
-    onAddressChange: (String) -> Unit,
-    showId: Boolean
-) {
-    if (showId) {
-        OutlinedTextField(
-            value = id,
-            onValueChange = onIdChange,
-            label = { Text("Id") },
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-        )
-    }
-    OutlinedTextField(value = firstName, onValueChange = onFirstNameChange, label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-    OutlinedTextField(value = lastName, onValueChange = onLastNameChange, label = { Text("Apellidos") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-    OutlinedTextField(value = dni, onValueChange = onDniChange, label = { Text("DNI") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-    OutlinedTextField(value = email, onValueChange = onEmailChange, label = { Text("Email") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-    OutlinedTextField(value = phone, onValueChange = onPhoneChange, label = { Text("Teléfono") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-    OutlinedTextField(value = address, onValueChange = onAddressChange, label = { Text("Dirección") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-}
-
-@Composable
-fun PatientsList(patients: List<PatientDTO>) {
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(patients) { patient ->
-            PatientItem(patient = patient)
-        }
-    }
-}
-
-@Composable
-fun PatientItem(patient: PatientDTO) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "${patient.firstName} ${patient.lastName}",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "DNI: ${patient.dni ?: "N/D"}",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-            Text(
-                text = "Email: ${patient.email ?: "N/D"}",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-            Text(
-                text = "Teléfono: ${patient.phone ?: "N/D"}",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-            Text(
-                text = "Dirección: ${patient.address ?: "N/D"}",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-        }
-    }
-}
-
-private enum class PatientAction { LIST, CREATE, UPDATE, DELETE, SEARCH, RELOAD }
-
-@Preview(showBackground = true)
-@Composable
-fun PatientItemPreview() {
-    Ocularis_MobileTheme {
-        PatientItem(
-            patient = PatientDTO(
-                id = 1,
-                dni = "12345678",
-                firstName = "John",
-                secondName = "Doe",
-                lastName = "Doe",
-                secondLastName = "Doe",
-                email = "john.c.calhoun@examplepetstore.com",
-                phone = "123456789",
-                birthDate = LocalDate.now() as String?,
-                address = "Address"
-            )
-        )
-    }
+private enum class PatientAction(val label: String) {
+    LIST("Lista"),
+    CREATE("Crear"),
+    UPDATE("Actualizar"),
+    DELETE("Eliminar"),
+    SEARCH("Buscar"),
+    RELOAD("Recargar")
 }
 

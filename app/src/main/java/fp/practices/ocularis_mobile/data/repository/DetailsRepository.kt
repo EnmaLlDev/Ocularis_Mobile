@@ -2,7 +2,10 @@ package fp.practices.ocularis_mobile.data.repository
 import fp.practices.ocularis_mobile.data.model.DetailsDTO
 import fp.practices.ocularis_mobile.data.network.ApiService
 import fp.practices.ocularis_mobile.data.network.RetrofitClient
-class DetailsRepository(private val api: ApiService = RetrofitClient.requireApiService()) {
+
+class DetailsRepository(api: ApiService? = null) {
+    private val api: ApiService = api ?: RetrofitClient.requireApiService()
+
     suspend fun getDetails(): List<DetailsDTO> = api.getDetails()
     suspend fun getDetail(id: Int): DetailsDTO = api.getDetail(id)
     suspend fun getByAppointment(appointmentId: Int): List<DetailsDTO> = api.getDetailsByAppointment(appointmentId)

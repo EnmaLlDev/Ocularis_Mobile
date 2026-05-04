@@ -2,8 +2,10 @@ package fp.practices.ocularis_mobile.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import fp.practices.ocularis_mobile.data.network.RetrofitClient
 import fp.practices.ocularis_mobile.data.model.auth.AuthUserInfo
 import fp.practices.ocularis_mobile.data.repository.AuthRepository
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,7 +32,27 @@ class AuthViewModel(
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
     init {
+        observeExternalSessionInvalidation()
         restoreSession()
+    }
+
+    private fun observeExternalSessionInvalidation() {
+        viewModelScope.launch {
+            RetrofitClient.tokenStore.accessTokenFlow.collectLatest { token ->
+                if (token.isNullOrBlank()) {
+                    _uiState.update {
+                        it.copy(
+                            isCheckingSession = false,
+                            isLoading = false,
+                            accessToken = null,
+                            userInfo = null,
+                            roles = emptySet(),
+                            error = null
+                        )
+                    }
+                }
+            }
+        }
     }
 
     fun restoreSession() {

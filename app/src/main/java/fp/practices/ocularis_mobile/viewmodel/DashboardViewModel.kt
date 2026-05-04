@@ -11,6 +11,7 @@ import fp.practices.ocularis_mobile.data.repository.DoctorsRepository
 import fp.practices.ocularis_mobile.data.repository.PatientsRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 
 class DashboardViewModel(
 	private val patientsRepository: PatientsRepository = PatientsRepository(),
@@ -35,20 +36,31 @@ class DashboardViewModel(
 		viewModelScope.launch {
 			_isLoading.value = true
 			_error.value = null
-			try {
-				// Se obtienen las listas en paralelo y sólo se usan los tamaños como KPI.
-				val patientsDeferred = async { patientsRepository.getPatients().size }
-				val doctorsDeferred = async { doctorsRepository.getDoctors().size }
-				val appointmentsDeferred = async { appointmentsRepository.getAppointments().size }
+			supervisorScope {
+				// Se obtienen las listas en paralelo sin propagar fallos de red al scope padre.
+				val patientsDeferred = async { runCatching { patientsRepository.getPatients().size } }
+				val doctorsDeferred = async { runCatching { doctorsRepository.getDoctors().size } }
+				val appointmentsDeferred = async { runCatching { appointmentsRepository.getAppointments().size } }
 
-				_stats.value = DashboardStats(
-					patients = patientsDeferred.await(),
-					doctors = doctorsDeferred.await(),
-					appointments = appointmentsDeferred.await()
-				)
-			} catch (e: Exception) {
-				_error.value = e.message ?: "Error al cargar el dashboard"
-			} finally {
+				val patientsResult = patientsDeferred.await()
+				val doctorsResult = doctorsDeferred.await()
+				val appointmentsResult = appointmentsDeferred.await()
+
+				val firstFailure = listOfNotNull(
+					patientsResult.exceptionOrNull(),
+					doctorsResult.exceptionOrNull(),
+					appointmentsResult.exceptionOrNull()
+				).firstOrNull()
+
+				if (firstFailure != null) {
+					_error.value = firstFailure.message ?: "Error al cargar el dashboard"
+				} else {
+					_stats.value = DashboardStats(
+						patients = patientsResult.getOrThrow(),
+						doctors = doctorsResult.getOrThrow(),
+						appointments = appointmentsResult.getOrThrow()
+					)
+				}
 				_isLoading.value = false
 			}
 		}

@@ -14,9 +14,15 @@ class TokenAuthenticator(
 ) : Authenticator {
 
     override fun authenticate(route: Route?, response: Response): Request? {
+        val path = response.request.url.encodedPath
+        if (path.startsWith("/auth/")) return null
+        if (response.code != 401 && response.code != 403) return null
         if (responseCount(response) >= 2) return null
 
-        val currentRefresh = tokenStore.getRefreshToken() ?: return null
+        val currentRefresh = tokenStore.getRefreshToken() ?: run {
+            runBlocking { tokenStore.clearAll() }
+            return null
+        }
 
         synchronized(this) {
             val requestAccessToken = response.request.header("Authorization")
@@ -32,7 +38,10 @@ class TokenAuthenticator(
 
             val refreshed = runCatching {
                 runBlocking { authApi.refresh(RefreshRequest(currentRefresh)) }
-            }.getOrNull() ?: return null
+            }.getOrNull() ?: run {
+                runBlocking { tokenStore.clearAll() }
+                return null
+            }
 
             runBlocking {
                 tokenStore.saveAccessToken(refreshed.accessToken)

@@ -1,7 +1,7 @@
 package fp.practices.ocularis_mobile.ui.auth
 
 object RoleAccess {
-    fun canManageDoctors(roles: Set<String>): Boolean = hasAnyRole(roles, "ADMIN", "DOCTOR")
+    fun canManageDoctors(roles: Set<String>): Boolean = hasAnyRole(roles, "ADMIN")
 
     fun canManagePatients(roles: Set<String>): Boolean = hasAnyRole(roles, "ADMIN")
 
@@ -9,9 +9,9 @@ object RoleAccess {
 
     fun canManageDetails(roles: Set<String>): Boolean = hasAnyRole(roles, "ADMIN", "DOCTOR")
 
-    fun canReadPatients(roles: Set<String>): Boolean = hasAnyRole(roles, "ADMIN", "DOCTOR", "PATIENT")
+    fun canReadPatients(roles: Set<String>): Boolean = hasAnyRole(roles, "ADMIN", "DOCTOR")
 
-    fun canReadDoctors(roles: Set<String>): Boolean = hasAnyRole(roles, "ADMIN", "DOCTOR", "PATIENT")
+    fun canReadDoctors(roles: Set<String>): Boolean = hasAnyRole(roles, "ADMIN")
 
     fun canReadAppointments(roles: Set<String>): Boolean = hasAnyRole(roles, "ADMIN", "DOCTOR", "PATIENT")
 

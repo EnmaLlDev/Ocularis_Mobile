@@ -9,15 +9,25 @@ class AuthHeaderInterceptor(
 ) : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
+        val original = chain.request()
         val token = runBlocking { tokenStore.getAccessToken() }
         val request = if (!token.isNullOrBlank()) {
-            chain.request().newBuilder()
+            original.newBuilder()
                 .header("Authorization", "Bearer $token")
                 .build()
         } else {
-            chain.request()
+            original
         }
-        return chain.proceed(request)
+
+        val response = chain.proceed(request)
+
+        // Si el backend invalida credenciales en endpoints protegidos, se limpia sesión para forzar login.
+        val isAuthEndpoint = original.url.encodedPath.startsWith("/auth/")
+        if (!isAuthEndpoint && (response.code == 401 || response.code == 403)) {
+            runBlocking { tokenStore.clearAll() }
+        }
+
+        return response
     }
 }
 

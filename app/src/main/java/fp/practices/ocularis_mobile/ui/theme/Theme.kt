@@ -9,7 +9,22 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+
+private val OcularisDarkColorScheme = darkColorScheme(
+    primary = PrimaryBlue,
+    secondary = SecondaryGreen,
+    tertiary = TertiaryOrange,
+    background = DarkBackground,
+    surface = DarkSurface,
+    onPrimary = LightText,
+    onSecondary = LightText,
+    onTertiary = LightText,
+    onBackground = LightText,
+    onSurface = LightText,
+    error = Color(0xFFFF6B6B)
+)
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -35,20 +50,12 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun Ocularis_MobileTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = true, // Forzamos tema oscuro
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false, // Desactivamos colores dinámicos para mantener consistencia
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = OcularisDarkColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,

@@ -1,19 +1,21 @@
 package fp.practices.ocularis_mobile.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -24,10 +26,10 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,6 +39,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -46,7 +52,13 @@ import fp.practices.ocularis_mobile.data.model.DetailsDTO
 import fp.practices.ocularis_mobile.data.model.DoctorDTO
 import fp.practices.ocularis_mobile.data.model.PatientDTO
 import fp.practices.ocularis_mobile.ui.auth.RoleAccess
+import fp.practices.ocularis_mobile.ui.theme.DarkBackground
+import fp.practices.ocularis_mobile.ui.theme.DarkSurface
+import fp.practices.ocularis_mobile.ui.theme.LightText
+import fp.practices.ocularis_mobile.ui.theme.MediumText
 import fp.practices.ocularis_mobile.ui.theme.Ocularis_MobileTheme
+import fp.practices.ocularis_mobile.ui.theme.PrimaryBlue
+import fp.practices.ocularis_mobile.ui.theme.VibrantBlue
 import fp.practices.ocularis_mobile.viewmodel.DetailsViewModel
 import java.time.LocalDate
 
@@ -61,9 +73,16 @@ fun DetailsScreen(
     val error by viewModel.error.observeAsState(null)
     val message by viewModel.message.observeAsState(null)
 
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(DarkBackground)
+    ) {
         when {
-            isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            isLoading -> CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center),
+                color = VibrantBlue
+            )
             error != null -> Text(
                 text = "Error: $error",
                 color = MaterialTheme.colorScheme.error,
@@ -108,22 +127,45 @@ private fun DetailsContent(
     }
 
     Row(modifier = Modifier.fillMaxSize()) {
-        DetailSideNav(
-            currentAction = currentAction,
-            canManage = canManage,
-            onActionSelected = { action ->
-                if (!canManage && action != DetailAction.LIST && action != DetailAction.RELOAD) {
-                    return@DetailSideNav
+        // Compact vertical icon bar
+        Column(
+            modifier = Modifier
+                .width(72.dp)
+                .fillMaxSize()
+                .background(DarkSurface),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                NavIcon(
+                    icon = { Icon(Icons.Filled.List, contentDescription = "Lista", tint = if (currentAction == DetailAction.LIST) VibrantBlue else LightText) },
+                    selected = currentAction == DetailAction.LIST,
+                    label = "Lista",
+                    onClick = { currentAction = DetailAction.LIST }
+                )
+
+                if (canManage) {
+                    NavIcon(icon = { Icon(Icons.Default.Add, contentDescription = "Crear", tint = if (currentAction == DetailAction.CREATE) VibrantBlue else LightText) }, selected = currentAction == DetailAction.CREATE, label = "Crear") { currentAction = DetailAction.CREATE }
+                    NavIcon(icon = { Icon(Icons.Default.Edit, contentDescription = "Actualizar", tint = if (currentAction == DetailAction.UPDATE) VibrantBlue else LightText) }, selected = currentAction == DetailAction.UPDATE, label = "Actualizar") { currentAction = DetailAction.UPDATE }
+                    NavIcon(icon = { Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = if (currentAction == DetailAction.DELETE) VibrantBlue else LightText) }, selected = currentAction == DetailAction.DELETE, label = "Eliminar") { currentAction = DetailAction.DELETE }
+                    NavIcon(icon = { Icon(Icons.Default.Search, contentDescription = "Filtrar", tint = if (currentAction == DetailAction.FILTER_APPOINTMENT) VibrantBlue else LightText) }, selected = currentAction == DetailAction.FILTER_APPOINTMENT, label = "Filtrar") { currentAction = DetailAction.FILTER_APPOINTMENT }
                 }
-                if (action == DetailAction.RELOAD) {
-                    onReload()
-                    currentAction = DetailAction.LIST
-                } else {
-                    currentAction = action
+
+                NavIcon(icon = { Icon(Icons.Default.Refresh, contentDescription = "Recargar", tint = if (currentAction == DetailAction.RELOAD) VibrantBlue else LightText) }, selected = currentAction == DetailAction.RELOAD, label = "Recargar") {
+                    onReload(); currentAction = DetailAction.LIST
                 }
             }
-        )
-        Column(modifier = Modifier.weight(1f)) {
+
+            // Logout / secondary actions area
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        // Main content
+        Column(modifier = Modifier.weight(1f).padding(16.dp)) {
+            Text("Pacientes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = LightText)
+            // Show the current small action label for clarity
+            Text(text = currentAction.name.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }, color = MediumText, modifier = Modifier.padding(top = 4.dp, bottom = 8.dp))
+
             DetailsCrudPanel(
                 currentAction = currentAction,
                 details = details,
@@ -140,57 +182,31 @@ private fun DetailsContent(
 }
 
 @Composable
-private fun DetailSideNav(
-    currentAction: DetailAction,
-    canManage: Boolean,
-    onActionSelected: (DetailAction) -> Unit
+private fun NavIcon(
+    icon: @Composable () -> Unit,
+    selected: Boolean,
+    label: String,
+    onClick: (() -> Unit)? = null
 ) {
-    NavigationRail {
-        NavigationRailItem(
-            selected = currentAction == DetailAction.LIST,
-            onClick = { onActionSelected(DetailAction.LIST) },
-            icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Lista") },
-            label = { Text("Lista") }
-        )
-        if (canManage) {
-            NavigationRailItem(
-                selected = currentAction == DetailAction.CREATE,
-                onClick = { onActionSelected(DetailAction.CREATE) },
-                icon = { Icon(Icons.Default.Add, contentDescription = "Crear") },
-                label = { Text("Crear") }
-            )
-            NavigationRailItem(
-                selected = currentAction == DetailAction.UPDATE,
-                onClick = { onActionSelected(DetailAction.UPDATE) },
-                icon = { Icon(Icons.Default.Edit, contentDescription = "Actualizar") },
-                label = { Text("Actualizar") }
-            )
-            NavigationRailItem(
-                selected = currentAction == DetailAction.DELETE,
-                onClick = { onActionSelected(DetailAction.DELETE) },
-                icon = { Icon(Icons.Default.Delete, contentDescription = "Eliminar") },
-                label = { Text("Eliminar") }
-            )
-            NavigationRailItem(
-                selected = currentAction == DetailAction.FILTER_APPOINTMENT,
-                onClick = { onActionSelected(DetailAction.FILTER_APPOINTMENT) },
-                icon = { Icon(Icons.Default.Search, contentDescription = "Filtrar") },
-                label = { Text("Por cita") }
-            )
+    val scale by animateFloatAsState(targetValue = if (selected) 1.08f else 1f, animationSpec = tween(durationMillis = 180))
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(vertical = 8.dp)) {
+        IconButton(onClick = { onClick?.invoke() }, modifier = Modifier.scale(scale)) {
+            Box(modifier = Modifier
+                .clip(RoundedCornerShape(12.dp))
+            ) {
+                icon()
+            }
         }
-        NavigationRailItem(
-            selected = currentAction == DetailAction.RELOAD,
-            onClick = { onActionSelected(DetailAction.RELOAD) },
-            icon = { Icon(Icons.Default.Refresh, contentDescription = "Recargar") },
-            label = { Text("Recargar") }
-        )
+        if (selected) {
+            Text(text = label, style = MaterialTheme.typography.bodySmall, color = VibrantBlue)
+        }
     }
 }
 
 @Composable
 private fun PermissionRequiredPanel() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Permiso requerido para acceder a esta vista")
+    Box(modifier = Modifier.fillMaxSize().background(DarkBackground), contentAlignment = Alignment.Center) {
+        Text("Permiso requerido para acceder a esta vista", color = LightText)
     }
 }
 
@@ -215,36 +231,36 @@ private fun DetailsCrudPanel(
     var followup by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text("Detalles", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        message?.let { Text(text = it, color = MaterialTheme.colorScheme.primary) }
-        localError?.let { Text(text = it, color = MaterialTheme.colorScheme.error) }
-
-        when (currentAction) {
-            DetailAction.LIST -> {
-                Spacer(modifier = Modifier.height(12.dp))
-                DetailsList(details)
-            }
-            DetailAction.CREATE, DetailAction.UPDATE -> {
-                DetailFormFields(
-                    id = id,
-                    onIdChange = { id = it },
-                    appointmentId = appointmentId,
-                    onAppointmentIdChange = { appointmentId = it },
-                    diagnosis = diagnosis,
-                    onDiagnosisChange = { diagnosis = it },
-                    treatment = treatment,
-                    onTreatmentChange = { treatment = it },
-                    prescription = prescription,
-                    onPrescriptionChange = { prescription = it },
-                    notes = notes,
-                    onNotesChange = { notes = it },
-                    followup = followup,
-                    onFollowupChange = { followup = it },
-                    showId = currentAction == DetailAction.UPDATE
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                ElevatedButton(onClick = {
+    when (currentAction) {
+        DetailAction.LIST -> {
+            Spacer(modifier = Modifier.height(12.dp))
+            DetailsList(details)
+        }
+        DetailAction.CREATE, DetailAction.UPDATE -> {
+            Text("Detalles", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = LightText)
+            message?.let { Text(text = it, color = MaterialTheme.colorScheme.primary) }
+            localError?.let { Text(text = it, color = MaterialTheme.colorScheme.error) }
+            Spacer(modifier = Modifier.height(8.dp))
+            DetailFormFields(
+                id = id,
+                onIdChange = { id = it },
+                appointmentId = appointmentId,
+                onAppointmentIdChange = { appointmentId = it },
+                diagnosis = diagnosis,
+                onDiagnosisChange = { diagnosis = it },
+                treatment = treatment,
+                onTreatmentChange = { treatment = it },
+                prescription = prescription,
+                onPrescriptionChange = { prescription = it },
+                notes = notes,
+                onNotesChange = { notes = it },
+                followup = followup,
+                onFollowupChange = { followup = it },
+                showId = currentAction == DetailAction.UPDATE
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            ElevatedButton(
+                onClick = {
                     localError = null
                     val appId = appointmentId.toIntOrNull()
                     if (appId == null) {
@@ -271,17 +287,29 @@ private fun DetailsCrudPanel(
                         onCreate(dto.copy(id = null))
                     }
                     onActionDone()
-                }) { Text(if (currentAction == DetailAction.UPDATE) "Actualizar" else "Crear") }
-            }
-            DetailAction.DELETE -> {
-                OutlinedTextField(
-                    value = id,
-                    onValueChange = { id = it },
-                    label = { Text("Id a eliminar") },
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                },
+                colors = androidx.compose.material3.ButtonDefaults.elevatedButtonColors(
+                    containerColor = PrimaryBlue,
+                    contentColor = LightText
                 )
-                Spacer(modifier = Modifier.height(12.dp))
-                ElevatedButton(onClick = {
+            ) { Text(if (currentAction == DetailAction.UPDATE) "Actualizar" else "Crear") }
+        }
+        DetailAction.DELETE -> {
+            OutlinedTextField(
+                value = id,
+                onValueChange = { id = it },
+                label = { Text("Id a eliminar") },
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(12.dp)),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = VibrantBlue,
+                    unfocusedBorderColor = MediumText,
+                    focusedTextColor = LightText,
+                    unfocusedTextColor = LightText
+                )
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            ElevatedButton(
+                onClick = {
                     localError = null
                     val targetId = id.toIntOrNull()
                     if (targetId == null) {
@@ -290,17 +318,29 @@ private fun DetailsCrudPanel(
                     }
                     onDelete(targetId)
                     onActionDone()
-                }) { Text("Eliminar") }
-            }
-            DetailAction.FILTER_APPOINTMENT -> {
-                OutlinedTextField(
-                    value = appointmentId,
-                    onValueChange = { appointmentId = it },
-                    label = { Text("Id Cita") },
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                },
+                colors = androidx.compose.material3.ButtonDefaults.elevatedButtonColors(
+                    containerColor = PrimaryBlue,
+                    contentColor = LightText
                 )
-                Spacer(modifier = Modifier.height(12.dp))
-                ElevatedButton(onClick = {
+            ) { Text("Eliminar") }
+        }
+        DetailAction.FILTER_APPOINTMENT -> {
+            OutlinedTextField(
+                value = appointmentId,
+                onValueChange = { appointmentId = it },
+                label = { Text("Id Cita") },
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(12.dp)),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = VibrantBlue,
+                    unfocusedBorderColor = MediumText,
+                    focusedTextColor = LightText,
+                    unfocusedTextColor = LightText
+                )
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            ElevatedButton(
+                onClick = {
                     localError = null
                     val appId = appointmentId.toIntOrNull()
                     if (appId == null) {
@@ -308,12 +348,16 @@ private fun DetailsCrudPanel(
                         return@ElevatedButton
                     }
                     onFilterByAppointment(appId)
-                }) { Text("Filtrar") }
-            }
-            DetailAction.RELOAD -> {
-                onReload()
-                onActionDone()
-            }
+                },
+                colors = androidx.compose.material3.ButtonDefaults.elevatedButtonColors(
+                    containerColor = PrimaryBlue,
+                    contentColor = LightText
+                )
+            ) { Text("Filtrar") }
+        }
+        DetailAction.RELOAD -> {
+            onReload()
+            onActionDone()
         }
     }
 }
@@ -337,20 +381,96 @@ private fun DetailFormFields(
     showId: Boolean
 ) {
     if (showId) {
-        OutlinedTextField(value = id, onValueChange = onIdChange, label = { Text("Id") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+        OutlinedTextField(
+            value = id,
+            onValueChange = onIdChange,
+            label = { Text("Id") },
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(12.dp)),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = VibrantBlue,
+                unfocusedBorderColor = MediumText,
+                focusedTextColor = LightText,
+                unfocusedTextColor = LightText
+            )
+        )
     }
-    OutlinedTextField(value = appointmentId, onValueChange = onAppointmentIdChange, label = { Text("Id Cita") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-    OutlinedTextField(value = diagnosis, onValueChange = onDiagnosisChange, label = { Text("Diagnóstico") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-    OutlinedTextField(value = treatment, onValueChange = onTreatmentChange, label = { Text("Tratamiento") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-    OutlinedTextField(value = prescription, onValueChange = onPrescriptionChange, label = { Text("Prescripción") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-    OutlinedTextField(value = notes, onValueChange = onNotesChange, label = { Text("Notas") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-    OutlinedTextField(value = followup, onValueChange = onFollowupChange, label = { Text("Seguimiento") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+    OutlinedTextField(
+        value = appointmentId,
+        onValueChange = onAppointmentIdChange,
+        label = { Text("Id Cita") },
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(12.dp)),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = VibrantBlue,
+            unfocusedBorderColor = MediumText,
+            focusedTextColor = LightText,
+            unfocusedTextColor = LightText
+        )
+    )
+    OutlinedTextField(
+        value = diagnosis,
+        onValueChange = onDiagnosisChange,
+        label = { Text("Diagnóstico") },
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(12.dp)),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = VibrantBlue,
+            unfocusedBorderColor = MediumText,
+            focusedTextColor = LightText,
+            unfocusedTextColor = LightText
+        )
+    )
+    OutlinedTextField(
+        value = treatment,
+        onValueChange = onTreatmentChange,
+        label = { Text("Tratamiento") },
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(12.dp)),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = VibrantBlue,
+            unfocusedBorderColor = MediumText,
+            focusedTextColor = LightText,
+            unfocusedTextColor = LightText
+        )
+    )
+    OutlinedTextField(
+        value = prescription,
+        onValueChange = onPrescriptionChange,
+        label = { Text("Prescripción") },
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(12.dp)),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = VibrantBlue,
+            unfocusedBorderColor = MediumText,
+            focusedTextColor = LightText,
+            unfocusedTextColor = LightText
+        )
+    )
+    OutlinedTextField(
+        value = notes,
+        onValueChange = onNotesChange,
+        label = { Text("Notas") },
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(12.dp)),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = VibrantBlue,
+            unfocusedBorderColor = MediumText,
+            focusedTextColor = LightText,
+            unfocusedTextColor = LightText
+        )
+    )
+    OutlinedTextField(
+        value = followup,
+        onValueChange = onFollowupChange,
+        label = { Text("Seguimiento") },
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(12.dp)),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = VibrantBlue,
+            unfocusedBorderColor = MediumText,
+            focusedTextColor = LightText,
+            unfocusedTextColor = LightText
+        )
+    )
 }
 
 @Composable
 fun DetailsList(details: List<DetailsDTO>) {
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(details) { detail ->
@@ -362,34 +482,40 @@ fun DetailsList(details: List<DetailsDTO>) {
 @Composable
 fun DetailItem(detail: DetailsDTO) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)),
+        colors = CardDefaults.cardColors(containerColor = DarkSurface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Text(
                 text = detail.diagnosis ?: "Sin diagnostico",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = LightText
             )
             Text(
                 text = detail.treatment ?: "Sin tratamiento",
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 8.dp)
+                modifier = Modifier.padding(top = 8.dp),
+                color = MediumText
             )
             Text(
                 text = detail.prescription ?: "Sin prescripcion",
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier.padding(top = 4.dp),
+                color = MediumText
             )
             Text(
                 text = detail.notes ?: "Sin notas",
                 style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier.padding(top = 4.dp),
+                color = MediumText
             )
             Text(
                 text = "Cita: ${detail.appointment?.dateTime ?: "N/D"}",
                 style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier.padding(top = 4.dp),
+                color = MediumText
             )
         }
     }
@@ -443,4 +569,3 @@ fun DetailItemPreview() {
         )
     }
 }
-

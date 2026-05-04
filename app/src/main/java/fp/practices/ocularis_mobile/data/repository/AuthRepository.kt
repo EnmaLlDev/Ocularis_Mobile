@@ -9,10 +9,13 @@ import fp.practices.ocularis_mobile.data.network.ApiService
 import fp.practices.ocularis_mobile.data.network.RetrofitClient
 
 class AuthRepository(
-    private val api: ApiService = RetrofitClient.requireApiService(),
-    private val authApi: ApiService = RetrofitClient.requireAuthApiService(),
-    private val tokenStore: TokenStore = RetrofitClient.tokenStore
+    api: ApiService? = null,
+    authApi: ApiService? = null,
+    tokenStore: TokenStore? = null
 ) {
+    private val api: ApiService = api ?: RetrofitClient.requireApiService()
+    private val authApi: ApiService = authApi ?: RetrofitClient.requireAuthApiService()
+    private val tokenStore: TokenStore = tokenStore ?: RetrofitClient.tokenStore
 
     suspend fun login(username: String, password: String): AuthUserInfo {
         val auth = authApi.login(LoginRequest(username = username, password = password))
