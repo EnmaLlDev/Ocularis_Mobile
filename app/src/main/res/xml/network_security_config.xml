@@ -3,6 +3,8 @@
     <domain-config cleartextTrafficPermitted="true">
         <!-- localhost desde emulador = 10.0.2.2 -->
         <domain includeSubdomains="true">10.0.2.2</domain>
+        <!-- IP local del backend (tu PC) -->
+        <domain includeSubdomains="true">192.168.1.128</domain>
         <!-- Ajusta si usas otra IP o dominio local -->
         <domain includeSubdomains="true">localhost</domain>
     </domain-config>
