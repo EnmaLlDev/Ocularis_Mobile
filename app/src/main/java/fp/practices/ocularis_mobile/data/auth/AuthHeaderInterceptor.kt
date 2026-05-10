@@ -21,9 +21,9 @@ class AuthHeaderInterceptor(
 
         val response = chain.proceed(request)
 
-        // Si el backend invalida credenciales en endpoints protegidos, se limpia sesión para forzar login.
+        // Solo limpiar tokens en 401 (no autenticado). El 403 es falta de permisos, no token inválido.
         val isAuthEndpoint = original.url.encodedPath.startsWith("/auth/")
-        if (!isAuthEndpoint && (response.code == 401 || response.code == 403)) {
+        if (!isAuthEndpoint && response.code == 401) {
             runBlocking { tokenStore.clearAll() }
         }
 

@@ -157,7 +157,7 @@ private fun AppShell(
     }
 
     LaunchedEffect(sections) {
-        if (sections.none { it.section == selectedSection }) {
+        if (sections.isNotEmpty() && sections.none { it.section == selectedSection }) {
             selectedSection = sections.first().section
         }
     }

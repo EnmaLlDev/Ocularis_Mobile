@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import fp.practices.ocularis_mobile.data.network.RetrofitClient
 import fp.practices.ocularis_mobile.data.model.auth.AuthUserInfo
 import fp.practices.ocularis_mobile.data.repository.AuthRepository
+import fp.practices.ocularis_mobile.util.Logger
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -107,6 +108,7 @@ class AuthViewModel(
     }
 
     fun login(username: String, password: String) {
+        Logger.d("AuthViewModel", "Intentando login para usuario: $username")
         if (username.isBlank() || password.isBlank()) {
             _uiState.update { it.copy(error = "Usuario y contraseña son obligatorios") }
             return
@@ -164,4 +166,3 @@ class AuthViewModel(
             .toSet()
     }
 }
-

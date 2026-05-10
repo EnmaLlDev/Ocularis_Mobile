@@ -101,5 +101,14 @@ interface ApiService {
     @DELETE("/api/details/delete/{id}")
     suspend fun deleteDetail(@Path("id") id: Int): Response<Unit>
 
+    // Patient-specific endpoints
+    @GET("/api/patient/me")
+    suspend fun getMyPatientData(): PatientDTO
+
+    @GET("/api/appointment/my")
+    suspend fun getMyAppointments(): List<AppointmentDTO>
+
+    @GET("/api/details/my")
+    suspend fun getMyDetails(): List<DetailsDTO>
 }
 

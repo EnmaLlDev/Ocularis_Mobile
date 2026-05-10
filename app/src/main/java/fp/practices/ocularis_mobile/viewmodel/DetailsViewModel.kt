@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import fp.practices.ocularis_mobile.data.model.DetailsDTO
 import fp.practices.ocularis_mobile.data.repository.DetailsRepository
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 class DetailsViewModel(
     private val repository: DetailsRepository = DetailsRepository()
 ) : ViewModel() {
@@ -20,13 +21,19 @@ class DetailsViewModel(
     init {
         loadDetails()
     }
-    fun loadDetails() {
+    fun loadDetails(isPatient: Boolean = false) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
             _message.value = null
             try {
-                _details.value = repository.getDetails()
+                _details.value = if (isPatient) {
+                    repository.getMyDetails()
+                } else {
+                    repository.getDetails()
+                }
+            } catch (e: HttpException) {
+                _error.value = "HTTP ${e.code()}"
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error desconocido"
             } finally {
@@ -42,6 +49,8 @@ class DetailsViewModel(
             _message.value = null
             try {
                 _details.value = repository.getByAppointment(appointmentId)
+            } catch (e: HttpException) {
+                _error.value = "HTTP ${e.code()}"
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error desconocido"
             } finally {

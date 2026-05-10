@@ -1,5 +1,8 @@
 package fp.practices.ocularis_mobile.ui.screens
 
+import android.util.Log
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -7,31 +10,33 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
@@ -39,10 +44,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -68,12 +71,36 @@ fun AppointmentsScreen(modifier: Modifier = Modifier, roles: Set<String> = empty
     val isLoading by viewModel.isLoading.observeAsState(false)
     val error by viewModel.error.observeAsState(null)
     val message by viewModel.message.observeAsState(null)
+    val isPatient = roles.contains("PATIENT")
+
+    // Load appointments on first composition with patient flag
+    LaunchedEffect(Unit) {
+        viewModel.loadAppointments(isPatient)
+    }
 
     Box(modifier = modifier.fillMaxSize().background(DarkBackground)) {
         when {
             isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = VibrantBlue)
-            error != null -> Text(text = "Error: $error", color = MaterialTheme.colorScheme.error, modifier = Modifier.align(Alignment.Center))
-            else -> AppointmentsContent(appointments = appointments, roles = roles, message = message, onCreate = viewModel::createAppointment, onUpdate = viewModel::updateAppointment, onDelete = viewModel::deleteAppointment, onReload = viewModel::loadAppointments)
+            error != null -> {
+                val is403 = error?.contains("403") == true
+                Log.d("AppointmentsScreen", "Error: $error, isPatient: $isPatient, is403: $is403, roles: $roles")
+                val errorMessage = if (isPatient && is403) {
+                    "No tienes permiso para ver todas las citas.\n(Se necesita endpoint /api/my-appointments)"
+                } else {
+                    "Error: $error"
+                }
+                Column(modifier = Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = errorMessage, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp))
+                    if (isPatient && is403) {
+                        Text(
+                            text = "Contacta al administrador",
+                            color = MediumText,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+            else -> AppointmentsContent(appointments = appointments, roles = roles, message = message, onCreate = viewModel::createAppointment, onUpdate = viewModel::updateAppointment, onDelete = viewModel::deleteAppointment, onReload = { viewModel.loadAppointments(isPatient) })
         }
     }
 }

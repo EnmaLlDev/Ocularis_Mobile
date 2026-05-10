@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import fp.practices.ocularis_mobile.data.model.AppointmentDTO
 import fp.practices.ocularis_mobile.data.repository.AppointmentsRepository
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 
 class AppointmentsViewModel(
     private val repository: AppointmentsRepository = AppointmentsRepository()
@@ -28,13 +29,19 @@ class AppointmentsViewModel(
         loadAppointments()
     }
 
-    fun loadAppointments() {
+    fun loadAppointments(isPatient: Boolean = false) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
             _message.value = null
             try {
-                _appointments.value = repository.getAppointments()
+                _appointments.value = if (isPatient) {
+                    repository.getMyAppointments()
+                } else {
+                    repository.getAppointments()
+                }
+            } catch (e: HttpException) {
+                _error.value = "HTTP ${e.code()}"
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error desconocido"
             } finally {

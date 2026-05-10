@@ -7,6 +7,7 @@ class DetailsRepository(api: ApiService? = null) {
     private val api: ApiService = api ?: RetrofitClient.requireApiService()
 
     suspend fun getDetails(): List<DetailsDTO> = api.getDetails()
+    suspend fun getMyDetails(): List<DetailsDTO> = api.getMyDetails()
     suspend fun getDetail(id: Int): DetailsDTO = api.getDetail(id)
     suspend fun getByAppointment(appointmentId: Int): List<DetailsDTO> = api.getDetailsByAppointment(appointmentId)
     suspend fun create(detail: DetailsDTO): DetailsDTO = api.createDetail(detail)

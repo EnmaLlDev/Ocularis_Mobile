@@ -16,7 +16,8 @@ class TokenAuthenticator(
     override fun authenticate(route: Route?, response: Response): Request? {
         val path = response.request.url.encodedPath
         if (path.startsWith("/auth/")) return null
-        if (response.code != 401 && response.code != 403) return null
+        // Solo manejar 401 (no autenticado), NO 403 (no autorizado - es permiso, no token)
+        if (response.code != 401) return null
         if (responseCount(response) >= 2) return null
 
         val currentRefresh = tokenStore.getRefreshToken() ?: run {

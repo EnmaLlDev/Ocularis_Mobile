@@ -43,6 +43,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -72,6 +73,12 @@ fun DetailsScreen(
     val isLoading by viewModel.isLoading.observeAsState(false)
     val error by viewModel.error.observeAsState(null)
     val message by viewModel.message.observeAsState(null)
+    val isPatient = roles.contains("PATIENT")
+
+    // Load details on first composition with patient flag
+    LaunchedEffect(Unit) {
+        viewModel.loadDetails(isPatient)
+    }
 
     Box(
         modifier = modifier
@@ -83,11 +90,24 @@ fun DetailsScreen(
                 modifier = Modifier.align(Alignment.Center),
                 color = VibrantBlue
             )
-            error != null -> Text(
-                text = "Error: $error",
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.align(Alignment.Center)
-            )
+            error != null -> {
+                val is403 = error?.contains("403") == true
+                val errorMessage = if (isPatient && is403) {
+                    "No tienes permiso para ver todos los detalles.\n(Se necesita endpoint /api/my-details)"
+                } else {
+                    "Error: $error"
+                }
+                Column(modifier = Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = errorMessage, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp))
+                    if (isPatient && is403) {
+                        Text(
+                            text = "Contacta al administrador",
+                            color = MediumText,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
             else -> DetailsContent(
                 details = details,
                 roles = roles,
@@ -96,7 +116,7 @@ fun DetailsScreen(
                 onUpdate = viewModel::updateDetail,
                 onDelete = viewModel::deleteDetail,
                 onFilterByAppointment = viewModel::loadByAppointment,
-                onReload = viewModel::loadDetails
+                onReload = { viewModel.loadDetails(isPatient) }
             )
         }
     }
