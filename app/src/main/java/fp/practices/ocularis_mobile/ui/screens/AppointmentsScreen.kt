@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -29,6 +30,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,6 +59,7 @@ import fp.practices.ocularis_mobile.data.model.StateAppoinment
 import fp.practices.ocularis_mobile.ui.auth.RoleAccess
 import fp.practices.ocularis_mobile.ui.theme.DarkBackground
 import fp.practices.ocularis_mobile.ui.theme.DarkSurface
+import fp.practices.ocularis_mobile.ui.theme.DarkSurfaceVariant
 import fp.practices.ocularis_mobile.ui.theme.LightText
 import fp.practices.ocularis_mobile.ui.theme.MediumText
 import fp.practices.ocularis_mobile.ui.theme.Ocularis_MobileTheme
@@ -114,38 +117,61 @@ private fun AppointmentsContent(appointments: List<AppointmentDTO>, roles: Set<S
     if (!canRead) { PermissionRequiredPanel(); return }
     if (!canManage && currentAction != AppointmentAction.LIST && currentAction != AppointmentAction.RELOAD) currentAction = AppointmentAction.LIST
 
-    Row(modifier = Modifier.fillMaxSize()) {
-        // compact vertical icon bar
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(DarkSurface)
-                .padding(vertical = 8.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                NavIcon(icon = { Icon(Icons.Filled.List, contentDescription = "Lista", tint = if (currentAction == AppointmentAction.LIST) VibrantBlue else LightText) }, selected = currentAction == AppointmentAction.LIST, label = "Lista") { currentAction = AppointmentAction.LIST }
-                if (canManage) {
-                    NavIcon(icon = { Icon(Icons.Default.Add, contentDescription = "Crear", tint = if (currentAction == AppointmentAction.CREATE) VibrantBlue else LightText) }, selected = currentAction == AppointmentAction.CREATE, label = "Crear") { currentAction = AppointmentAction.CREATE }
-                    NavIcon(icon = { Icon(Icons.Default.Edit, contentDescription = "Actualizar", tint = if (currentAction == AppointmentAction.UPDATE) VibrantBlue else LightText) }, selected = currentAction == AppointmentAction.UPDATE, label = "Actualizar") { currentAction = AppointmentAction.UPDATE }
-                    NavIcon(icon = { Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = if (currentAction == AppointmentAction.DELETE) VibrantBlue else LightText) }, selected = currentAction == AppointmentAction.DELETE, label = "Eliminar") { currentAction = AppointmentAction.DELETE }
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        ActionChips(
+            currentAction = currentAction,
+            canManage = canManage,
+            onSelect = { action ->
+                if (!canManage && action != AppointmentAction.LIST && action != AppointmentAction.RELOAD) return@ActionChips
+                if (action == AppointmentAction.RELOAD) {
+                    onReload()
+                    currentAction = AppointmentAction.LIST
+                } else {
+                    currentAction = action
                 }
-                NavIcon(icon = { Icon(Icons.Default.Refresh, contentDescription = "Recargar", tint = if (currentAction == AppointmentAction.RELOAD) VibrantBlue else LightText) }, selected = currentAction == AppointmentAction.RELOAD, label = "Recargar") { onReload(); currentAction = AppointmentAction.LIST }
             }
+        )
 
-            Spacer(modifier = Modifier.height(8.dp))
-        }
+        Spacer(modifier = Modifier.height(12.dp))
 
-        Column(modifier = Modifier.weight(1f).background(DarkBackground)) {
-            AppointmentCrudPanel(currentAction = currentAction, appointments = appointments, onCreate = onCreate, onUpdate = onUpdate, onDelete = onDelete, onReload = onReload, message = message, onActionDone = { currentAction = AppointmentAction.LIST })
-        }
+        AppointmentCrudPanel(
+            currentAction = currentAction,
+            appointments = appointments,
+            onCreate = onCreate,
+            onUpdate = onUpdate,
+            onDelete = onDelete,
+            onReload = onReload,
+            message = message,
+            onActionDone = { currentAction = AppointmentAction.LIST }
+        )
     }
 }
 
 @Composable
-private fun AppointmentSideNav(currentAction: AppointmentAction, canManage: Boolean, onActionSelected: (AppointmentAction) -> Unit) {
-    // kept for compatibility - the compact nav is implemented inline in AppointmentsContent
+private fun ActionChips(
+    currentAction: AppointmentAction,
+    canManage: Boolean,
+    onSelect: (AppointmentAction) -> Unit
+) {
+    val items = buildList {
+        add(AppointmentAction.LIST)
+        if (canManage) {
+            add(AppointmentAction.CREATE)
+            add(AppointmentAction.UPDATE)
+            add(AppointmentAction.DELETE)
+        }
+        add(AppointmentAction.RELOAD)
+    }
+
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(items) { action ->
+            FilterChip(
+                selected = currentAction == action,
+                onClick = { onSelect(action) },
+                label = { Text(action.label) }
+            )
+        }
+    }
 }
 
 @Composable
@@ -187,42 +213,167 @@ private fun AppointmentCrudPanel(currentAction: AppointmentAction, appointments:
     var status by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text("Citas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = LightText)
-        message?.let { Text(text = it, color = MaterialTheme.colorScheme.primary) }
-        localError?.let { Text(text = it, color = MaterialTheme.colorScheme.error) }
+    val title = when (currentAction) {
+        AppointmentAction.LIST -> "Listado de citas"
+        AppointmentAction.CREATE -> "Crear cita"
+        AppointmentAction.UPDATE -> "Actualizar cita"
+        AppointmentAction.DELETE -> "Eliminar cita"
+        AppointmentAction.RELOAD -> "Recargar"
+    }
 
-        when (currentAction) {
-            AppointmentAction.LIST -> { Spacer(modifier = Modifier.height(12.dp)); AppointmentsList(appointments) }
-            AppointmentAction.CREATE, AppointmentAction.UPDATE -> {
-                OutlinedTextField(value = patientId, onValueChange = { patientId = it }, label = { Text("Id Paciente") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(12.dp)), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = VibrantBlue, unfocusedBorderColor = MediumText, focusedTextColor = LightText, unfocusedTextColor = LightText))
-                OutlinedTextField(value = doctorId, onValueChange = { doctorId = it }, label = { Text("Id Doctor") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(12.dp)), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = VibrantBlue, unfocusedBorderColor = MediumText, focusedTextColor = LightText, unfocusedTextColor = LightText))
-                OutlinedTextField(value = dateTime, onValueChange = { dateTime = it }, label = { Text("Fecha/Hora (ISO)") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(12.dp)), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = VibrantBlue, unfocusedBorderColor = MediumText, focusedTextColor = LightText, unfocusedTextColor = LightText))
-                OutlinedTextField(value = reason, onValueChange = { reason = it }, label = { Text("Motivo") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(12.dp)), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = VibrantBlue, unfocusedBorderColor = MediumText, focusedTextColor = LightText, unfocusedTextColor = LightText))
-                OutlinedTextField(value = status, onValueChange = { status = it }, label = { Text("Estado (SCHEDULED/...)") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(12.dp)), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = VibrantBlue, unfocusedBorderColor = MediumText, focusedTextColor = LightText, unfocusedTextColor = LightText))
-                Spacer(modifier = Modifier.height(12.dp))
-                ElevatedButton(onClick = { localError = null; val patient = patientId.toIntOrNull() ?: run { localError = "Id de paciente inválido"; return@ElevatedButton }; val doctor = doctorId.toIntOrNull() ?: run { localError = "Id de doctor inválido"; return@ElevatedButton }; val statusEnum = status.takeIf { it.isNotBlank() }?.let { runCatching { StateAppoinment.valueOf(it.trim().uppercase()) }.getOrNull() }; val dto = AppointmentDTO(id.toIntOrNull(), dateTime.ifBlank { null }, PatientDTO(id = patient, dni = null, firstName = "", secondName = null, lastName = "", secondLastName = null, email = null, phone = null, birthDate = null, address = null), DoctorDTO(id = doctor, firstName = "", secondName = null, lastName = "", secondLastName = null, dni = null, email = null, phone = null, licenseNumber = null, specialty = null), reason.ifBlank { null }, statusEnum); if (currentAction == AppointmentAction.UPDATE) { val targetId = dto.id ?: run { localError = "Id requerido para actualizar"; return@ElevatedButton }; onUpdate(targetId, dto) } else onCreate(dto.copy(id = null)); onActionDone() }, colors = androidx.compose.material3.ButtonDefaults.elevatedButtonColors(containerColor = PrimaryBlue, contentColor = LightText)) { Text(if (currentAction == AppointmentAction.UPDATE) "Actualizar" else "Crear") }
+    Column(modifier = Modifier.fillMaxSize()) {
+        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = LightText)
+        message?.let { Text(text = it, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 4.dp)) }
+        localError?.let { Text(text = it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 4.dp)) }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Card(
+            modifier = Modifier.fillMaxSize(),
+            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                when (currentAction) {
+                    AppointmentAction.LIST -> AppointmentsList(appointments)
+                    AppointmentAction.CREATE, AppointmentAction.UPDATE -> {
+                        OutlinedTextField(
+                            value = patientId,
+                            onValueChange = { patientId = it },
+                            label = { Text("Id Paciente") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = VibrantBlue,
+                                unfocusedBorderColor = MediumText,
+                                focusedTextColor = LightText,
+                                unfocusedTextColor = LightText
+                            )
+                        )
+                        OutlinedTextField(
+                            value = doctorId,
+                            onValueChange = { doctorId = it },
+                            label = { Text("Id Doctor") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = VibrantBlue,
+                                unfocusedBorderColor = MediumText,
+                                focusedTextColor = LightText,
+                                unfocusedTextColor = LightText
+                            )
+                        )
+                        OutlinedTextField(
+                            value = dateTime,
+                            onValueChange = { dateTime = it },
+                            label = { Text("Fecha/Hora (ISO)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = VibrantBlue,
+                                unfocusedBorderColor = MediumText,
+                                focusedTextColor = LightText,
+                                unfocusedTextColor = LightText
+                            )
+                        )
+                        OutlinedTextField(
+                            value = reason,
+                            onValueChange = { reason = it },
+                            label = { Text("Motivo") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = VibrantBlue,
+                                unfocusedBorderColor = MediumText,
+                                focusedTextColor = LightText,
+                                unfocusedTextColor = LightText
+                            )
+                        )
+                        OutlinedTextField(
+                            value = status,
+                            onValueChange = { status = it },
+                            label = { Text("Estado (SCHEDULED/...) ") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = VibrantBlue,
+                                unfocusedBorderColor = MediumText,
+                                focusedTextColor = LightText,
+                                unfocusedTextColor = LightText
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        ElevatedButton(
+                            onClick = {
+                                localError = null
+                                val patient = patientId.toIntOrNull() ?: run { localError = "Id de paciente inválido"; return@ElevatedButton }
+                                val doctor = doctorId.toIntOrNull() ?: run { localError = "Id de doctor inválido"; return@ElevatedButton }
+                                val statusEnum = status.takeIf { it.isNotBlank() }?.let { runCatching { StateAppoinment.valueOf(it.trim().uppercase()) }.getOrNull() }
+                                val dto = AppointmentDTO(
+                                    id.toIntOrNull(),
+                                    dateTime.ifBlank { null },
+                                    PatientDTO(id = patient, dni = null, firstName = "", secondName = null, lastName = "", secondLastName = null, email = null, phone = null, birthDate = null, address = null),
+                                    DoctorDTO(id = doctor, firstName = "", secondName = null, lastName = "", secondLastName = null, dni = null, email = null, phone = null, licenseNumber = null, specialty = null),
+                                    reason.ifBlank { null },
+                                    statusEnum
+                                )
+                                if (currentAction == AppointmentAction.UPDATE) {
+                                    val targetId = dto.id ?: run { localError = "Id requerido para actualizar"; return@ElevatedButton }
+                                    onUpdate(targetId, dto)
+                                } else {
+                                    onCreate(dto.copy(id = null))
+                                }
+                                onActionDone()
+                            },
+                            colors = androidx.compose.material3.ButtonDefaults.elevatedButtonColors(containerColor = PrimaryBlue, contentColor = LightText)
+                        ) { Text(if (currentAction == AppointmentAction.UPDATE) "Actualizar" else "Crear") }
+                    }
+                    AppointmentAction.DELETE -> {
+                        OutlinedTextField(
+                            value = id,
+                            onValueChange = { id = it },
+                            label = { Text("Id a eliminar") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = VibrantBlue,
+                                unfocusedBorderColor = MediumText,
+                                focusedTextColor = LightText,
+                                unfocusedTextColor = LightText
+                            )
+                        )
+                        ElevatedButton(
+                            onClick = {
+                                localError = null
+                                val targetId = id.toIntOrNull() ?: run { localError = "Id inválido"; return@ElevatedButton }
+                                onDelete(targetId)
+                                onActionDone()
+                            },
+                            colors = androidx.compose.material3.ButtonDefaults.elevatedButtonColors(containerColor = PrimaryBlue, contentColor = LightText)
+                        ) { Text("Eliminar") }
+                    }
+                    AppointmentAction.RELOAD -> { onReload(); onActionDone() }
+                }
             }
-            AppointmentAction.DELETE -> {
-                OutlinedTextField(value = id, onValueChange = { id = it }, label = { Text("Id a eliminar") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(12.dp)), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = VibrantBlue, unfocusedBorderColor = MediumText, focusedTextColor = LightText, unfocusedTextColor = LightText))
-                Spacer(modifier = Modifier.height(12.dp))
-                ElevatedButton(onClick = { localError = null; val targetId = id.toIntOrNull() ?: run { localError = "Id inválido"; return@ElevatedButton }; onDelete(targetId); onActionDone() }, colors = androidx.compose.material3.ButtonDefaults.elevatedButtonColors(containerColor = PrimaryBlue, contentColor = LightText)) { Text("Eliminar") }
-            }
-            AppointmentAction.RELOAD -> { onReload(); onActionDone() }
         }
     }
 }
 
 @Composable
 fun AppointmentsList(appointments: List<AppointmentDTO>) {
-    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    if (appointments.isEmpty()) {
+        Box(modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
+            Text(text = "No hay citas registradas", color = MediumText)
+        }
+        return
+    }
+
+    LazyColumn(contentPadding = PaddingValues(8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         items(appointments) { appointment -> AppointmentItem(appointment) }
     }
 }
 
 @Composable
 fun AppointmentItem(appointment: AppointmentDTO) {
-    Card(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)), colors = CardDefaults.cardColors(containerColor = DarkSurface), elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(text = appointment.reason ?: "Sin motivo", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = LightText)
             Text(text = appointment.dateTime?.toString() ?: "Fecha no disponible", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp), color = MediumText)
@@ -233,7 +384,7 @@ fun AppointmentItem(appointment: AppointmentDTO) {
     }
 }
 
-private enum class AppointmentAction { LIST, CREATE, UPDATE, DELETE, RELOAD }
+private enum class AppointmentAction(val label: String) { LIST("Lista"), CREATE("Crear"), UPDATE("Actualizar"), DELETE("Eliminar"), RELOAD("Recargar") }
 
 @Preview(showBackground = true)
 @Composable
@@ -242,4 +393,3 @@ fun AppointmentItemPreview() {
         AppointmentItem(appointment = AppointmentDTO(1, LocalDate.now().toString(), PatientDTO(1, "123", "Jane", null, "Doe", null, null, null, null, null), DoctorDTO(1, "Doc. Jose", "Luis", "Torrente", null, null, null, null, null, "Oftalmología"), "Chequeo", StateAppoinment.CONFIRMED))
     }
 }
-

@@ -36,7 +36,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import fp.practices.ocularis_mobile.data.model.ContactInfo
 import fp.practices.ocularis_mobile.data.model.DashboardStats
+import fp.practices.ocularis_mobile.data.model.DashboardVisualContent
 import fp.practices.ocularis_mobile.ui.theme.DarkBackground
 import fp.practices.ocularis_mobile.ui.theme.DarkSurface
 import fp.practices.ocularis_mobile.ui.theme.LightText
@@ -46,9 +48,10 @@ import fp.practices.ocularis_mobile.ui.theme.VibrantBlue
 import fp.practices.ocularis_mobile.ui.theme.VibrantGreen
 import fp.practices.ocularis_mobile.ui.theme.VibrantOrange
 import fp.practices.ocularis_mobile.viewmodel.DashboardViewModel
+import fp.practices.ocularis_mobile.viewmodel.DashboardVisualViewModel
 
 @Composable
-fun HomeScreen(
+fun AdminScreen(
     modifier: Modifier = Modifier,
     roles: Set<String> = emptySet(),
     viewModel: DashboardViewModel = viewModel()
@@ -56,6 +59,10 @@ fun HomeScreen(
     val stats by viewModel.stats.observeAsState()
     val isLoading by viewModel.isLoading.observeAsState(false)
     val error by viewModel.error.observeAsState()
+    val visualsViewModel: DashboardVisualViewModel = viewModel()
+    val visualContent by visualsViewModel.visualContent.observeAsState()
+    val visualsLoading by visualsViewModel.isLoading.observeAsState(false)
+    val visualsError by visualsViewModel.error.observeAsState(null)
 
     Box(
         modifier = modifier
@@ -68,13 +75,29 @@ fun HomeScreen(
                 color = VibrantBlue
             )
             error != null -> ErrorPanel(message = error ?: "Error", onRetry = viewModel::loadStats)
-            else -> DashboardContent(stats = stats, roles = roles, onReload = viewModel::loadStats)
+            else -> DashboardContent(
+                stats = stats,
+                roles = roles,
+                visualContent = visualContent,
+                visualsLoading = visualsLoading,
+                visualsError = visualsError,
+                onReload = viewModel::loadStats,
+                onReloadVisuals = visualsViewModel::loadVisualContent
+            )
         }
     }
 }
 
 @Composable
-private fun DashboardContent(stats: DashboardStats?, roles: Set<String>, onReload: () -> Unit) {
+private fun DashboardContent(
+    stats: DashboardStats?,
+    roles: Set<String>,
+    visualContent: DashboardVisualContent?,
+    visualsLoading: Boolean,
+    visualsError: String?,
+    onReload: () -> Unit,
+    onReloadVisuals: () -> Unit
+) {
     val isAdmin = roles.contains("ADMIN")
     val isDoctor = roles.contains("DOCTOR")
     val isPatient = roles.contains("PATIENT")
@@ -134,29 +157,177 @@ private fun DashboardContent(stats: DashboardStats?, roles: Set<String>, onReloa
             }
         }
 
-        item {
-            when {
-                isAdmin -> AdminSummary(stats)
-                isDoctor -> DoctorSummary(stats)
-                isPatient -> PatientSummary(stats)
-                else -> PatientSummary(stats)
+        item { DashboardStatsSummary(stats = stats, roles = roles) }
+
+        if (visualsLoading && visualContent == null) {
+            item {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                    CircularProgressIndicator(color = VibrantBlue)
+                }
             }
         }
 
-        item { ContactSection() }
+        visualsError?.let { errorMessage ->
+            item {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+                ElevatedButton(
+                    onClick = onReloadVisuals,
+                    colors = ButtonDefaults.elevatedButtonColors(
+                        containerColor = PrimaryBlue,
+                        contentColor = LightText
+                    )
+                ) {
+                    Text("Reintentar")
+                }
+            }
+        }
+
+        val visualsResolved = visualContent ?: DashboardVisualContent.default()
+
+        item { ContactSection(visualsResolved.contact) }
 
         when {
             isAdmin -> {
-                item { FinancingSection() }
-                item { OperationsSection() }
+                item { FinancingSection(visualsResolved.financingPlans) }
+                item { OperationsSection(visualsResolved.operations) }
             }
             isDoctor -> {
-                item { OperationsSection() }
+                item { OperationsSection(visualsResolved.operations) }
             }
             isPatient -> {
-                item { PatientTipsSection() }
+                item { PatientTipsSection(visualsResolved.tips) }
             }
         }
+    }
+}
+
+@Composable
+private fun ContactSection(contact: ContactInfo) {
+    Card(
+        modifier = Modifier.clip(RoundedCornerShape(16.dp)),
+        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                "Contacto",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = LightText
+            )
+            Text(contact.name, style = MaterialTheme.typography.bodyMedium, color = MediumText)
+            Text("Tel: ${contact.phone}", style = MaterialTheme.typography.bodyMedium, color = MediumText)
+            Text("Email: ${contact.email}", style = MaterialTheme.typography.bodyMedium, color = MediumText)
+            Text("Dirección: ${contact.address}", style = MaterialTheme.typography.bodyMedium, color = MediumText)
+            Text("Horario: ${contact.hours}", style = MaterialTheme.typography.bodyMedium, color = MediumText)
+        }
+    }
+}
+
+@Composable
+private fun FinancingSection(plans: List<String>) {
+    Card(
+        modifier = Modifier.clip(RoundedCornerShape(16.dp)),
+        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                "Planes de financiamiento",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = LightText
+            )
+            plans.forEach { plan ->
+                Text("• $plan", color = MediumText)
+            }
+        }
+    }
+}
+
+@Composable
+private fun OperationsSection(operations: List<String>) {
+    Card(
+        modifier = Modifier.clip(RoundedCornerShape(16.dp)),
+        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "Operaciones oculares",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = LightText
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                operations.forEach { op ->
+                    Text("• $op", style = MaterialTheme.typography.bodyMedium, color = MediumText)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PatientTipsSection(tips: List<String>) {
+    Card(
+        modifier = Modifier.clip(RoundedCornerShape(16.dp)),
+        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                "Recomendaciones rápidas",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = LightText
+            )
+            tips.forEach { tip ->
+                Text("• $tip", color = MediumText)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ErrorPanel(message: String, onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = message, color = MaterialTheme.colorScheme.error, fontSize = 16.sp)
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(
+            onClick = onRetry,
+            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+        ) {
+            Text("Reintentar", color = LightText)
+        }
+    }
+}
+
+@Composable
+private fun DashboardStatsSummary(stats: DashboardStats?, roles: Set<String>) {
+    val isAdmin = roles.contains("ADMIN")
+    val isDoctor = roles.contains("DOCTOR")
+    val isPatient = roles.contains("PATIENT")
+
+    when {
+        isAdmin -> AdminSummary(stats)
+        isDoctor -> DoctorSummary(stats)
+        isPatient -> PatientSummary(stats)
+        else -> PatientSummary(stats)
     }
 }
 
@@ -216,126 +387,6 @@ private fun RowScope.StatCard(title: String, value: Int, color: Color) {
                 color = LightText,
                 fontSize = 24.sp
             )
-        }
-    }
-}
-
-@Composable
-private fun ContactSection() {
-    Card(
-        modifier = Modifier.clip(RoundedCornerShape(16.dp)),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                "Contacto",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = LightText
-            )
-            Text("Clínica Ocularis", style = MaterialTheme.typography.bodyMedium, color = MediumText)
-            Text("Tel: +34 900 123 456", style = MaterialTheme.typography.bodyMedium, color = MediumText)
-            Text("Email: contacto@ocularis.com", style = MaterialTheme.typography.bodyMedium, color = MediumText)
-            Text("Dirección: Av. Salud Visual 123, Madrid", style = MaterialTheme.typography.bodyMedium, color = MediumText)
-            Text("Horario: Lun-Vie 9:00-19:00", style = MaterialTheme.typography.bodyMedium, color = MediumText)
-        }
-    }
-}
-
-@Composable
-private fun FinancingSection() {
-    Card(
-        modifier = Modifier.clip(RoundedCornerShape(16.dp)),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                "Planes de financiamiento",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = LightText
-            )
-            Text("• Plan Esencial: consultas y revisiones básicas en 3 cuotas sin intereses.", color = MediumText)
-            Text("• Plan Premium: cirugía + controles postoperatorios hasta 12 meses financiados.", color = MediumText)
-            Text("• Plan Familiar: descuentos por grupo y pagos fraccionados hasta 6 cuotas.", color = MediumText)
-        }
-    }
-}
-
-@Composable
-private fun OperationsSection() {
-    val operations = listOf(
-        "Cirugía refractiva (LASIK/PRK)",
-        "Cirugía de cataratas",
-        "Implante de lentes intraoculares",
-        "Cross-linking corneal",
-        "Tratamiento de ojo seco avanzado",
-        "Control de miopía en niños y adolescentes"
-    )
-    Card(
-        modifier = Modifier.clip(RoundedCornerShape(16.dp)),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                "Operaciones oculares",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = LightText
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                operations.forEach { op ->
-                    Text("• $op", style = MaterialTheme.typography.bodyMedium, color = MediumText)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PatientTipsSection() {
-    Card(
-        modifier = Modifier.clip(RoundedCornerShape(16.dp)),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                "Recomendaciones rápidas",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = LightText
-            )
-            Text("• Revisa tus citas programadas con frecuencia.", color = MediumText)
-            Text("• Si necesitas cambiar una cita, contacta a la clínica.", color = MediumText)
-            Text("• Mantén tus datos de contacto actualizados.", color = MediumText)
-        }
-    }
-}
-
-@Composable
-private fun ErrorPanel(message: String, onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = message, color = MaterialTheme.colorScheme.error, fontSize = 16.sp)
-        Spacer(modifier = Modifier.height(12.dp))
-        Button(
-            onClick = onRetry,
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
-        ) {
-            Text("Reintentar", color = LightText)
         }
     }
 }

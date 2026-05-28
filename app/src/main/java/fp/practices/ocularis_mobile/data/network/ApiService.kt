@@ -8,6 +8,9 @@ import fp.practices.ocularis_mobile.data.model.auth.AuthResponse
 import fp.practices.ocularis_mobile.data.model.auth.LoginRequest
 import fp.practices.ocularis_mobile.data.model.auth.MeResponse
 import fp.practices.ocularis_mobile.data.model.auth.RefreshRequest
+import fp.practices.ocularis_mobile.data.model.ContactMessageDTO
+import fp.practices.ocularis_mobile.data.model.ContactResponseDTO
+import fp.practices.ocularis_mobile.data.model.DashboardVisualContent
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -110,5 +113,10 @@ interface ApiService {
 
     @GET("/api/details/my")
     suspend fun getMyDetails(): List<DetailsDTO>
-}
 
+    @POST("/api/contact/create")
+    suspend fun createContactMessage(@Body message: ContactMessageDTO): ContactResponseDTO
+
+    @GET("/api/dashboard/visuals")
+    suspend fun getDashboardVisuals(): DashboardVisualContent
+}

@@ -12,8 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -41,10 +42,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import fp.practices.ocularis_mobile.ui.screens.DetailsScreen
 import fp.practices.ocularis_mobile.ui.screens.DoctorsScreen
-import fp.practices.ocularis_mobile.ui.screens.HomeScreen
+import fp.practices.ocularis_mobile.ui.screens.AdminScreen
 import fp.practices.ocularis_mobile.ui.screens.LoginScreen
 import fp.practices.ocularis_mobile.ui.screens.PatientsScreen
 import fp.practices.ocularis_mobile.ui.screens.AppointmentsScreen
+import fp.practices.ocularis_mobile.ui.screens.DashboardScreen
 import fp.practices.ocularis_mobile.ui.theme.Ocularis_MobileTheme
 import fp.practices.ocularis_mobile.ui.theme.DarkBackground
 import fp.practices.ocularis_mobile.ui.theme.LightText
@@ -73,7 +75,7 @@ private enum class TopSection {
 private data class SectionItem(
     val section: TopSection,
     val label: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector
+    val icon: ImageVector
 )
 
 @Composable
@@ -84,7 +86,7 @@ private fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
     LaunchedEffect(authState.isAuthenticated, authState.isCheckingSession) {
         if (authState.isCheckingSession) return@LaunchedEffect
 
-        val target = if (authState.isAuthenticated) "app" else "login"
+        val target = if (authState.isAuthenticated) "app" else "dashboard"
         navController.navigate(target) {
             popUpTo(navController.graph.findStartDestination().id) {
                 inclusive = true
@@ -102,10 +104,14 @@ private fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
 
     NavHost(
         navController = navController,
-        startDestination = if (authState.isAuthenticated) "app" else "login"
+        startDestination = if (authState.isAuthenticated) "app" else "dashboard"
     ) {
+        composable("dashboard") {
+            DashboardScreen(navController)
+        }
         composable("login") {
             LoginScreen(
+                navController = navController,
                 isLoading = authState.isLoading,
                 error = authState.error,
                 onLogin = authViewModel::login,
@@ -140,7 +146,7 @@ private fun AppShell(
         when {
             isAdmin -> {
                 add(SectionItem(TopSection.PATIENTS, "Pacientes", Icons.AutoMirrored.Filled.List))
-                add(SectionItem(TopSection.DOCTORS, "Doctores", Icons.Default.Favorite))
+                add(SectionItem(TopSection.DOCTORS, "Doctores", Icons.Default.MedicalServices))
                 add(SectionItem(TopSection.APPOINTMENTS, "Citas", Icons.Default.Refresh))
                 add(SectionItem(TopSection.DETAILS, "Detalles", Icons.Default.Edit))
             }
@@ -169,7 +175,7 @@ private fun AppShell(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBackground),
                 title = {
                     Text(
-                        text = "${username ?: "-"} · $roleText",
+                        text = roleText,
                         color = LightText
                     )
                 },
@@ -200,7 +206,7 @@ private fun AppShell(
                 .padding(innerPadding)
         ) {
             when (selectedSection) {
-                TopSection.HOME -> HomeScreen(modifier = Modifier.fillMaxSize(), roles = roles)
+                TopSection.HOME -> AdminScreen(modifier = Modifier.fillMaxSize(), roles = roles)
                 TopSection.PATIENTS -> PatientsScreen(modifier = Modifier.fillMaxSize(), roles = roles)
                 TopSection.DOCTORS -> DoctorsScreen(modifier = Modifier.fillMaxSize(), roles = roles)
                 TopSection.APPOINTMENTS -> AppointmentsScreen(modifier = Modifier.fillMaxSize(), roles = roles)

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,6 +26,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -142,60 +144,60 @@ private fun DetailsContent(
         return
     }
 
-    if (!canManage && currentAction != DetailAction.LIST && currentAction != DetailAction.RELOAD) {
-        currentAction = DetailAction.LIST
-    }
-
-    Row(modifier = Modifier.fillMaxSize()) {
-        // Compact vertical icon bar
-        Column(
-            modifier = Modifier
-                .width(72.dp)
-                .fillMaxSize()
-                .background(DarkSurface),
-            verticalArrangement = Arrangement.SpaceBetween,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                NavIcon(
-                    icon = { Icon(Icons.Filled.List, contentDescription = "Lista", tint = if (currentAction == DetailAction.LIST) VibrantBlue else LightText) },
-                    selected = currentAction == DetailAction.LIST,
-                    label = "Lista",
-                    onClick = { currentAction = DetailAction.LIST }
-                )
-
-                if (canManage) {
-                    NavIcon(icon = { Icon(Icons.Default.Add, contentDescription = "Crear", tint = if (currentAction == DetailAction.CREATE) VibrantBlue else LightText) }, selected = currentAction == DetailAction.CREATE, label = "Crear") { currentAction = DetailAction.CREATE }
-                    NavIcon(icon = { Icon(Icons.Default.Edit, contentDescription = "Actualizar", tint = if (currentAction == DetailAction.UPDATE) VibrantBlue else LightText) }, selected = currentAction == DetailAction.UPDATE, label = "Actualizar") { currentAction = DetailAction.UPDATE }
-                    NavIcon(icon = { Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = if (currentAction == DetailAction.DELETE) VibrantBlue else LightText) }, selected = currentAction == DetailAction.DELETE, label = "Eliminar") { currentAction = DetailAction.DELETE }
-                    NavIcon(icon = { Icon(Icons.Default.Search, contentDescription = "Filtrar", tint = if (currentAction == DetailAction.FILTER_APPOINTMENT) VibrantBlue else LightText) }, selected = currentAction == DetailAction.FILTER_APPOINTMENT, label = "Filtrar") { currentAction = DetailAction.FILTER_APPOINTMENT }
-                }
-
-                NavIcon(icon = { Icon(Icons.Default.Refresh, contentDescription = "Recargar", tint = if (currentAction == DetailAction.RELOAD) VibrantBlue else LightText) }, selected = currentAction == DetailAction.RELOAD, label = "Recargar") {
-                    onReload(); currentAction = DetailAction.LIST
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        ActionChips(
+            currentAction = currentAction,
+            canManage = canManage,
+            onSelect = { action ->
+                if (!canManage && action != DetailAction.LIST && action != DetailAction.RELOAD) return@ActionChips
+                if (action == DetailAction.RELOAD) {
+                    onReload()
+                    currentAction = DetailAction.LIST
+                } else {
+                    currentAction = action
                 }
             }
+        )
 
-            // Logout / secondary actions area
-            Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
+
+        DetailsCrudPanel(
+            currentAction = currentAction,
+            details = details,
+            onCreate = onCreate,
+            onUpdate = onUpdate,
+            onDelete = onDelete,
+            onFilterByAppointment = onFilterByAppointment,
+            onReload = onReload,
+            message = message,
+            onActionDone = { currentAction = DetailAction.LIST }
+        )
+    }
+}
+
+@Composable
+private fun ActionChips(
+    currentAction: DetailAction,
+    canManage: Boolean,
+    onSelect: (DetailAction) -> Unit
+) {
+    val items = buildList {
+        add(DetailAction.LIST)
+        if (canManage) {
+            add(DetailAction.CREATE)
+            add(DetailAction.UPDATE)
+            add(DetailAction.DELETE)
+            add(DetailAction.FILTER_APPOINTMENT)
         }
+        add(DetailAction.RELOAD)
+    }
 
-        // Main content
-        Column(modifier = Modifier.weight(1f).padding(16.dp)) {
-            Text("Pacientes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = LightText)
-            // Show the current small action label for clarity
-            Text(text = currentAction.name.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }, color = MediumText, modifier = Modifier.padding(top = 4.dp, bottom = 8.dp))
-
-            DetailsCrudPanel(
-                currentAction = currentAction,
-                details = details,
-                onCreate = onCreate,
-                onUpdate = onUpdate,
-                onDelete = onDelete,
-                onFilterByAppointment = onFilterByAppointment,
-                onReload = onReload,
-                message = message,
-                onActionDone = { currentAction = DetailAction.LIST }
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(items) { action ->
+            FilterChip(
+                selected = currentAction == action,
+                onClick = { onSelect(action) },
+                label = { Text(action.label) }
             )
         }
     }
@@ -541,7 +543,7 @@ fun DetailItem(detail: DetailsDTO) {
     }
 }
 
-private enum class DetailAction { LIST, CREATE, UPDATE, DELETE, FILTER_APPOINTMENT, RELOAD }
+private enum class DetailAction(val label: String) { LIST("Lista"), CREATE("Crear"), UPDATE("Actualizar"), DELETE("Eliminar"), FILTER_APPOINTMENT("Filtrar"), RELOAD("Recargar") }
 
 @Preview(showBackground = true)
 @Composable

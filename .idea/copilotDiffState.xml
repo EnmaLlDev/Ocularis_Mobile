@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="/ContactMessageDTO (snapshot).kt">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="/ContactMessageDTO (snapshot).kt" />
+              <option name="originalContent" value="package fp.practices.ocularis_mobile.data.model&#10;&#10;data class ContactMessageDTO(&#10;    val nombre: String,&#10;    val apellido: String,&#10;    val email: String,&#10;    val mensaje: String&#10;)&#10;&#10;" />
+              <option name="updatedContent" value="package fp.practices.ocularis_mobile.data.model&#10;&#10;data class ContactMessageDTO(&#10;    val nombre: String,&#10;    val apellido: String,&#10;    val email: String,&#10;    val telefono: String,&#10;    val mensaje: String,&#10;    val revisado: Boolean&#10;)" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="/ContactViewModel (snapshot).kt">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="/ContactViewModel (snapshot).kt" />
+              <option name="originalContent" value="package fp.practices.ocularis_mobile.viewmodel&#10;&#10;import androidx.lifecycle.LiveData&#10;import androidx.lifecycle.MutableLiveData&#10;import androidx.lifecycle.ViewModel&#10;import androidx.lifecycle.viewModelScope&#10;import fp.practices.ocularis_mobile.data.model.ContactMessageDTO&#10;import fp.practices.ocularis_mobile.data.repository.ContactRepository&#10;import kotlinx.coroutines.launch&#10;&#10;class ContactViewModel(&#10;    private val repository: ContactRepository = ContactRepository()&#10;) : ViewModel() {&#10;    private val _isSending = MutableLiveData(false)&#10;    val isSending: LiveData&lt;Boolean&gt; = _isSending&#10;&#10;    private val _error = MutableLiveData&lt;String?&gt;(null)&#10;    val error: LiveData&lt;String?&gt; = _error&#10;&#10;    private val _message = MutableLiveData&lt;String?&gt;(null)&#10;    val message: LiveData&lt;String?&gt; = _message&#10;&#10;    fun sendMessage(message: ContactMessageDTO) {&#10;        viewModelScope.launch {&#10;            _isSending.value = true&#10;            _error.value = null&#10;            _message.value = null&#10;            try {&#10;                val ok = repository.sendMessage(message)&#10;                if (ok) {&#10;                    _message.value = &quot;Mensaje enviado&quot;&#10;                } else {&#10;                    _error.value = &quot;No se pudo enviar el mensaje&quot;&#10;                }&#10;            } catch (e: Exception) {&#10;                _error.value = e.message ?: &quot;Error al enviar el mensaje&quot;&#10;            } finally {&#10;                _isSending.value = false&#10;            }&#10;        }&#10;    }&#10;&#10;    fun clearMessage() {&#10;        _message.value = null&#10;    }&#10;&#10;    fun clearError() {&#10;        _error.value = null&#10;    }&#10;}&#10;" />
+              <option name="updatedContent" value="package fp.practices.ocularis_mobile.viewmodel&#13;&#10;&#13;&#10;import androidx.lifecycle.LiveData&#13;&#10;import androidx.lifecycle.MutableLiveData&#13;&#10;import androidx.lifecycle.ViewModel&#13;&#10;import androidx.lifecycle.viewModelScope&#13;&#10;import fp.practices.ocularis_mobile.data.model.ContactMessageDTO&#13;&#10;import fp.practices.ocularis_mobile.data.repository.ContactRepository&#13;&#10;import kotlinx.coroutines.launch&#13;&#10;&#13;&#10;class ContactViewModel(&#13;&#10;    private val repository: ContactRepository = ContactRepository()&#13;&#10;) : ViewModel() {&#13;&#10;    private val _isSending = MutableLiveData(false)&#13;&#10;    val isSending: LiveData&lt;Boolean&gt; = _isSending&#13;&#10;&#13;&#10;    private val _error = MutableLiveData&lt;String?&gt;(null)&#13;&#10;    val error: LiveData&lt;String?&gt; = _error&#13;&#10;&#13;&#10;    private val _message = MutableLiveData&lt;String?&gt;(null)&#13;&#10;    val message: LiveData&lt;String?&gt; = _message&#13;&#10;&#13;&#10;    fun sendMessage(message: ContactMessageDTO) {&#13;&#10;        viewModelScope.launch {&#13;&#10;            _isSending.value = true&#13;&#10;            _error.value = null&#13;&#10;            _message.value = null&#13;&#10;            try {&#13;&#10;                val response = repository.sendMessage(message)&#13;&#10;                if (response.status.equals(&quot;success&quot;, ignoreCase = true)) {&#13;&#10;                    _message.value = response.message ?: &quot;Mensaje enviado&quot;&#13;&#10;                } else {&#13;&#10;                    _error.value = response.message ?: &quot;No se pudo enviar el mensaje&quot;&#13;&#10;                }&#13;&#10;            } catch (e: Exception) {&#13;&#10;                _error.value = e.message ?: &quot;Error al enviar el mensaje&quot;&#13;&#10;            } finally {&#13;&#10;                _isSending.value = false&#13;&#10;            }&#13;&#10;        }&#13;&#10;    }&#13;&#10;&#13;&#10;    fun clearMessage() {&#13;&#10;        _message.value = null&#13;&#10;    }&#13;&#10;&#13;&#10;    fun clearError() {&#13;&#10;        _error.value = null&#13;&#10;    }&#13;&#10;}" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
