@@ -9,6 +9,9 @@ import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
+/**
+ * Singleton que gestiona la instancia de Retrofit con autenticación JWT.
+ */
 object RetrofitClient {
     private const val TAG = "RetrofitClient"
     // Usa la IP local de tu PC (obtenida con ipconfig)
@@ -26,6 +29,10 @@ object RetrofitClient {
 
     private lateinit var authApiService: ApiService
 
+    /**
+     * Inicializa los clientes de Retrofit (auth y autenticado).
+     * @param context contexto de la aplicación
+     */
     fun initialize(context: Context) {
         if (initialized) return
         Logger.d(TAG, "Inicializando RetrofitClient...")
@@ -65,6 +72,10 @@ object RetrofitClient {
         }
     }
 
+    /**
+     * Devuelve el ApiService autenticado.
+     * @throws IllegalStateException si no se ha inicializado
+     */
     fun requireApiService(): ApiService {
         if (!initialized) {
             Logger.e(TAG, "RetrofitClient no esta inicializado al requerir apiService. Llama a RetrofitClient.initialize(context) en MainActivity.")
@@ -74,6 +85,10 @@ object RetrofitClient {
         return apiService
     }
 
+    /**
+     * Devuelve el ApiService sin autenticación para login/refresh.
+     * @throws IllegalStateException si no se ha inicializado
+     */
     fun requireAuthApiService(): ApiService {
         if (!initialized) {
             Logger.e(TAG, "RetrofitClient no esta inicializado al requerir authApiService. Llama a RetrofitClient.initialize(context) en MainActivity.")

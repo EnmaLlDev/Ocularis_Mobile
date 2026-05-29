@@ -10,7 +10,7 @@ import fp.practices.ocularis_mobile.data.model.auth.MeResponse
 import fp.practices.ocularis_mobile.data.model.auth.RefreshRequest
 import fp.practices.ocularis_mobile.data.model.ContactMessageDTO
 import fp.practices.ocularis_mobile.data.model.ContactResponseDTO
-import fp.practices.ocularis_mobile.data.model.DashboardVisualContent
+import fp.practices.ocularis_mobile.data.model.Dashboard
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -19,6 +19,9 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 
+/**
+ * Define los endpoints REST de la API backend.
+ */
 interface ApiService {
     @POST("/auth/login")
     suspend fun login(@Body request: LoginRequest): AuthResponse
@@ -42,7 +45,7 @@ interface ApiService {
     suspend fun createPatient(@Body patient: PatientDTO): PatientDTO
 
     @PUT("/api/patient/update/{id}")
-    suspend fun updatePatient(@Path("id") id: Int, @Body patient: PatientDTO): Response<Unit>
+    suspend fun updatePatient(@Path("id") id: Int, @Body patient: PatientDTO): PatientDTO
 
     @DELETE("/api/patient/delete/{id}")
     suspend fun deletePatient(@Path("id") id: Int): Response<Unit>
@@ -106,7 +109,7 @@ interface ApiService {
 
     // Patient-specific endpoints
     @GET("/api/patient/me")
-    suspend fun getMyPatientData(): PatientDTO
+    suspend fun getMyPatientData(): Response<PatientDTO>
 
     @GET("/api/appointment/my")
     suspend fun getMyAppointments(): List<AppointmentDTO>
@@ -118,5 +121,5 @@ interface ApiService {
     suspend fun createContactMessage(@Body message: ContactMessageDTO): ContactResponseDTO
 
     @GET("/api/dashboard/visuals")
-    suspend fun getDashboardVisuals(): DashboardVisualContent
+    suspend fun getDashboardVisuals(): Dashboard
 }

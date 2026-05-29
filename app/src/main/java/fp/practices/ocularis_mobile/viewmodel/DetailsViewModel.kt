@@ -7,6 +7,9 @@ import fp.practices.ocularis_mobile.data.model.DetailsDTO
 import fp.practices.ocularis_mobile.data.repository.DetailsRepository
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
+/**
+ * ViewModel para la gestión de detalles clínicos.
+ */
 class DetailsViewModel(
     private val repository: DetailsRepository = DetailsRepository()
 ) : ViewModel() {
@@ -18,9 +21,10 @@ class DetailsViewModel(
     val error: LiveData<String?> = _error
     private val _message = MutableLiveData<String?>(null)
     val message: LiveData<String?> = _message
-    init {
-        loadDetails()
-    }
+    /**
+     * Carga los detalles clínicos propios o todos según el rol.
+     * @param isPatient true para cargar solo los propios
+     */
     fun loadDetails(isPatient: Boolean = false) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -42,6 +46,10 @@ class DetailsViewModel(
         }
     }
 
+    /**
+     * Carga los detalles asociados a una cita específica.
+     * @param appointmentId identificador de la cita
+     */
     fun loadByAppointment(appointmentId: Int) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -59,6 +67,10 @@ class DetailsViewModel(
         }
     }
 
+    /**
+     * Crea un nuevo detalle clínico.
+     * @param detail datos del detalle
+     */
     fun createDetail(detail: DetailsDTO) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -76,6 +88,11 @@ class DetailsViewModel(
         }
     }
 
+    /**
+     * Actualiza un detalle clínico existente.
+     * @param id identificador del detalle
+     * @param detail datos actualizados
+     */
     fun updateDetail(id: Int, detail: DetailsDTO) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -97,6 +114,10 @@ class DetailsViewModel(
         }
     }
 
+    /**
+     * Elimina un detalle clínico por su identificador.
+     * @param id identificador del detalle
+     */
     fun deleteDetail(id: Int) {
         viewModelScope.launch {
             _isLoading.value = true

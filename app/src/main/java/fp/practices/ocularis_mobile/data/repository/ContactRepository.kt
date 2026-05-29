@@ -5,6 +5,9 @@ import fp.practices.ocularis_mobile.data.model.ContactResponseDTO
 import fp.practices.ocularis_mobile.data.network.ApiService
 import fp.practices.ocularis_mobile.data.network.RetrofitClient
 
+/**
+ * Repositorio para enviar mensajes de contacto a la clínica.
+ */
 class ContactRepository(api: ApiService? = null) {
     private val api: ApiService = api ?: RetrofitClient.requireAuthApiService()
 

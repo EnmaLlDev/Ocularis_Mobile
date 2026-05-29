@@ -1,9 +1,8 @@
 package fp.practices.ocularis_mobile.data.model
 
-import java.time.LocalDate
-import java.time.LocalDateTime
-
-// Nota: uso LocalDate según lo solicitado; si necesitas LocalDateTime, avísame.
+/**
+ * Representa una cita médica.
+ */
 data class AppointmentDTO(
     val id: Int?,
     val dateTime: String?,
@@ -12,4 +11,3 @@ data class AppointmentDTO(
     val reason: String?,
     val status: StateAppoinment?
 )
-

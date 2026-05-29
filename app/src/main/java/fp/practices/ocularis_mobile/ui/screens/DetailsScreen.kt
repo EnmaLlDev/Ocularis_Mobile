@@ -65,6 +65,11 @@ import fp.practices.ocularis_mobile.ui.theme.VibrantBlue
 import fp.practices.ocularis_mobile.viewmodel.DetailsViewModel
 import java.time.LocalDate
 
+/**
+ * Pantalla de gestión de detalles clínicos con operaciones CRUD.
+ * @param roles roles del usuario
+ * @param viewModel ViewModel de detalles
+ */
 @Composable
 fun DetailsScreen(
     modifier: Modifier = Modifier,
@@ -124,6 +129,9 @@ fun DetailsScreen(
     }
 }
 
+/**
+ * Contenido principal de detalles clínicos: lista y operaciones según permisos.
+ */
 @Composable
 private fun DetailsContent(
     details: List<DetailsDTO>,
@@ -250,7 +258,7 @@ private fun DetailsCrudPanel(
     var prescription by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var treatment by remember { mutableStateOf("") }
-    var followup by remember { mutableStateOf("") }
+    var followUp by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
 
     when (currentAction) {
@@ -276,8 +284,8 @@ private fun DetailsCrudPanel(
                 onPrescriptionChange = { prescription = it },
                 notes = notes,
                 onNotesChange = { notes = it },
-                followup = followup,
-                onFollowupChange = { followup = it },
+                followUp = followUp,
+                onFollowupChange = { followUp = it },
                 showId = currentAction == DetailAction.UPDATE
             )
             Spacer(modifier = Modifier.height(12.dp))
@@ -291,12 +299,12 @@ private fun DetailsCrudPanel(
                     }
                     val dto = DetailsDTO(
                         id = id.toIntOrNull(),
-                        appointment = AppointmentDTO(id = appId, dateTime = null, patient = null, doctor = null, reason = null, status = null),
+                        appointmentId = appId,
                         diagnosis = diagnosis.ifBlank { null },
                         prescription = prescription.ifBlank { null },
                         notes = notes.ifBlank { null },
                         treatment = treatment.ifBlank { null },
-                        followup = followup.ifBlank { null }
+                        followUp = followUp.ifBlank { null }
                     )
                     if (currentAction == DetailAction.UPDATE) {
                         val targetId = dto.id
@@ -398,7 +406,7 @@ private fun DetailFormFields(
     onPrescriptionChange: (String) -> Unit,
     notes: String,
     onNotesChange: (String) -> Unit,
-    followup: String,
+    followUp: String,
     onFollowupChange: (String) -> Unit,
     showId: Boolean
 ) {
@@ -477,9 +485,9 @@ private fun DetailFormFields(
         )
     )
     OutlinedTextField(
-        value = followup,
+        value = followUp,
         onValueChange = onFollowupChange,
-        label = { Text("Seguimiento") },
+        label = { Text("Seguimiento (yyyy-MM-dd)") },
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(12.dp)),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = VibrantBlue,
@@ -534,7 +542,7 @@ fun DetailItem(detail: DetailsDTO) {
                 color = MediumText
             )
             Text(
-                text = "Cita: ${detail.appointment?.dateTime ?: "N/D"}",
+                text = "Cita: ${detail.appointmentId ?: "N/D"}",
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(top = 4.dp),
                 color = MediumText
@@ -552,41 +560,12 @@ fun DetailItemPreview() {
         DetailItem(
             detail = DetailsDTO(
                 id = 1,
-                appointment = AppointmentDTO(
-                    id = 1,
-                    dateTime = LocalDate.now().toString(),
-                    patient = PatientDTO(
-                        id = 1,
-                        dni = "123",
-                        firstName = "Jane",
-                        secondName = null,
-                        lastName = "Doe",
-                        secondLastName = null,
-                        email = null,
-                        phone = null,
-                        birthDate = null,
-                        address = null
-                    ),
-                    doctor = DoctorDTO(
-                        id = 1,
-                        firstName = "Doc",
-                        secondName = null,
-                        lastName = "Brown",
-                        secondLastName = null,
-                        dni = null,
-                        email = null,
-                        phone = null,
-                        licenseNumber = null,
-                        specialty = "Oftalmologia"
-                    ),
-                    reason = "Chequeo",
-                    status = null
-                ),
+                appointmentId = 1,
                 diagnosis = "Miopia leve",
                 prescription = "Gafas 1.25",
                 notes = "Revisar en 6 meses",
                 treatment = "Lentes diarios",
-                followup = "2024-12-01"
+                followUp = "2024-12-01"
             )
         )
     }

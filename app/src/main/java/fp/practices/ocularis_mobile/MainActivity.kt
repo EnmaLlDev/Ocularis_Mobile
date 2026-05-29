@@ -1,9 +1,11 @@
 package fp.practices.ocularis_mobile
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -53,6 +55,7 @@ import fp.practices.ocularis_mobile.ui.theme.LightText
 import fp.practices.ocularis_mobile.viewmodel.AuthViewModel
 
 class MainActivity : ComponentActivity() {
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -78,6 +81,7 @@ private data class SectionItem(
     val icon: ImageVector
 )
 
+@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @Composable
 private fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
     val authState by authViewModel.uiState.collectAsState()
@@ -115,7 +119,18 @@ private fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
                 isLoading = authState.isLoading,
                 error = authState.error,
                 onLogin = authViewModel::login,
-                onClearError = authViewModel::clearError
+                onClearError = authViewModel::clearError,
+                showRegisterOnStart = false
+            )
+        }
+        composable("registro_paciente") {
+            LoginScreen(
+                navController = navController,
+                isLoading = authState.isLoading,
+                error = authState.error,
+                onLogin = authViewModel::login,
+                onClearError = authViewModel::clearError,
+                showRegisterOnStart = true
             )
         }
 

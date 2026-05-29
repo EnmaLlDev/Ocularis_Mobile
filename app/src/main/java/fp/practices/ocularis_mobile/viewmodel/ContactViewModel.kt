@@ -8,6 +8,9 @@ import fp.practices.ocularis_mobile.data.model.ContactMessageDTO
 import fp.practices.ocularis_mobile.data.repository.ContactRepository
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel para enviar mensajes de contacto a la clínica.
+ */
 class ContactViewModel(
     private val repository: ContactRepository = ContactRepository()
 ) : ViewModel() {
@@ -20,6 +23,10 @@ class ContactViewModel(
     private val _message = MutableLiveData<String?>(null)
     val message: LiveData<String?> = _message
 
+    /**
+     * Envía un mensaje de contacto al backend.
+     * @param message datos del mensaje
+     */
     fun sendMessage(message: ContactMessageDTO) {
         viewModelScope.launch {
             _isSending.value = true
@@ -40,10 +47,16 @@ class ContactViewModel(
         }
     }
 
+    /**
+     * Limpia el mensaje de éxito.
+     */
     fun clearMessage() {
         _message.value = null
     }
 
+    /**
+     * Limpia el mensaje de error.
+     */
     fun clearError() {
         _error.value = null
     }

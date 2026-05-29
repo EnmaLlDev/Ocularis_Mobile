@@ -1,6 +1,14 @@
 package fp.practices.ocularis_mobile.data.model
 
-data class DashboardVisualContent(
+import fp.practices.ocularis_mobile.R
+
+/**
+ * Modelo del dashboard con contenido visual de la clínica.
+ */
+data class Dashboard(
+    val patients: Int = 0,
+    val doctors: Int = 0,
+    val appointments: Int = 0,
     val about: AboutInfo,
     val contact: ContactInfo,
     val promotions: List<Promotion>,
@@ -10,8 +18,8 @@ data class DashboardVisualContent(
     val tips: List<String>
 ) {
     companion object {
-        fun default(): DashboardVisualContent {
-            return DashboardVisualContent(
+        fun default(): Dashboard {
+            return Dashboard(
                 about = AboutInfo(
                     title = "SOBRE OCULARIS",
                     description = "Líderes en tratamientos oftalmologícos, Clínica Ocularis se dedica a proporcionar cuidado visual excepcional utilizando la tecnología de vanguardia y un equipo de especialistas dedicados. Nuestro compromiso es su visión, brindando atención personalizada para toda su familia.",
@@ -28,56 +36,53 @@ data class DashboardVisualContent(
                     Promotion(
                         title = "Miopía",
                         description = "Soluciones quirúrgicas avanzadas para corregir la visión de lejos, incluyendo LASIK y PRK en Clínica Ocularis.",
-                        imageUrl = "https://images.pexels.com/photos/3845128/pexels-photo-3845128.jpeg?auto=compress&w=400&q=80",
+                        imageRes = R.drawable.miopia_review,
                         details = "Desde 950€ por ojo. Consulta gratuita. Financiación disponible."
                     ),
                     Promotion(
                         title = "Ojo Seco",
                         description = "Tratamientos de última generación y terapias especializadas.",
-                        imageUrl = "https://images.pexels.com/photos/3845734/pexels-photo-3845734.jpeg?auto=compress&w=400&q=80",
+                        imageRes = R.drawable.eyes_review,
                         details = "Consulta inicial 40€. Pack tratamiento desde 120€."
                     ),
                     Promotion(
                         title = "Presbicia",
                         description = "Mejora tu visión de cerca con nuestros lentes progresivos de última generación y opciones de lentes de contacto premium.",
-                        imageUrl = "https://images.pexels.com/photos/3845761/pexels-photo-3845761.jpeg?auto=compress&w=400&q=80",
+                        imageRes = R.drawable.doctor_review,
                         details = "Lentes desde 180€. Consulta gratuita."
                     ),
                     Promotion(
                         title = "Cataratas",
                         description = "Recuperación visual con cirugía de facoemulsificación de precisión e implante de lentes intraoculares multifocales.",
-                        imageUrl = "https://images.pexels.com/photos/3845802/pexels-photo-3845802.jpeg?auto=compress&w=400&q=80",
+                        imageRes = R.drawable.cataratas_review,
                         details = "Cirugía desde 1.200€ por ojo. Financiación disponible."
                     )
                 ),
                 curiosities = listOf(
                     Curiosity(
-                        text = "Las lágrimas no solo lubrican, también contienen enzimas que protegen contra infecciones y nutren la córnea.",
-                        imageUrl = "https://images.pexels.com/photos/3845820/pexels-photo-3845820.jpeg?auto=compress&w=400&q=80"
+                        title = "Lágrimas protectoras",
+                        description = "Las lágrimas no solo lubrican, también contienen enzimas que protegen contra infecciones y nutren la córnea.",
+                        imageRes = R.drawable.teardrop_data
                     ),
                     Curiosity(
-                        text = "El músculo del párpado es el más rápido del cuerpo: el parpadeo es tan rápido que dura solo 1/10 de segundo.",
-                        imageUrl = "https://images.pexels.com/photos/3845734/pexels-photo-3845734.jpeg?auto=compress&w=400&q=80"
+                        title = "Parpadeo ultrarrápido",
+                        description = "El músculo del párpado es el más rápido del cuerpo: el parpadeo dura solo 1/10 de segundo.",
+                        imageRes = R.drawable.mucles_eyes_data
                     ),
                     Curiosity(
-                        text = "El ojo humano puede distinguir alrededor de 10 millones de colores diferentes.",
-                        imageUrl = "https://images.pexels.com/photos/3845761/pexels-photo-3845761.jpeg?auto=compress&w=400&q=80"
+                        title = "Millones de colores",
+                        description = "El ojo humano puede distinguir alrededor de 10 millones de colores diferentes.",
+                        imageRes = R.drawable.colors_data
                     ),
                     Curiosity(
-                        text = "La córnea es el único tejido del cuerpo humano que no contiene vasos sanguíneos.",
-                        imageUrl = "https://images.pexels.com/photos/3845802/pexels-photo-3845802.jpeg?auto=compress&w=400&q=80"
+                        title = "Córnea sin vasos sanguíneos",
+                        description = "La córnea es el único tejido del cuerpo humano que no contiene vasos sanguíneos.",
+                        imageRes = R.drawable.cornea_data
                     ),
                     Curiosity(
-                        text = "Los ojos parpadean aproximadamente 15-20 veces por minuto, lo que ayuda a mantenerlos limpios y húmedos.",
-                        imageUrl = "https://images.pexels.com/photos/3845128/pexels-photo-3845128.jpeg?auto=compress&w=400&q=80"
-                    ),
-                    Curiosity(
-                        text = "El ojo humano puede enfocar en tan solo 2 milisegundos, más rápido que una cámara profesional.",
-                        imageUrl = "https://images.pexels.com/photos/3845850/pexels-photo-3845850.jpeg?auto=compress&w=400&q=80"
-                    ),
-                    Curiosity(
-                        text = "Las lágrimas emocionales contienen hormonas y proteínas diferentes a las lágrimas basales.",
-                        imageUrl = "https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&w=400&q=80"
+                        title = "Parpadeo constante",
+                        description = "Los ojos parpadean aproximadamente 15-20 veces por minuto, lo que ayuda a mantenerlos limpios.",
+                        imageRes = R.drawable.parpadeo_data
                     )
                 ),
                 financingPlans = listOf(
@@ -103,6 +108,9 @@ data class DashboardVisualContent(
     }
 }
 
+/**
+ * Información de contacto de la clínica.
+ */
 data class ContactInfo(
     val name: String,
     val phone: String,
@@ -111,21 +119,30 @@ data class ContactInfo(
     val hours: String
 )
 
+/**
+ * Información sobre la clínica.
+ */
 data class AboutInfo(
     val title: String,
     val description: String,
     val ctaLabel: String
 )
 
+/**
+ * Promoción o tratamiento ofrecido por la clínica.
+ */
 data class Promotion(
     val title: String,
     val description: String,
-    val imageUrl: String,
+    val imageRes: Int,
     val details: String
 )
 
+/**
+ * Curiosidad oftalmológica para mostrar en el dashboard.
+ */
 data class Curiosity(
-    val text: String,
-    val imageUrl: String
+    val title: String,
+    val description: String,
+    val imageRes: Int
 )
-

@@ -1,5 +1,8 @@
 package fp.practices.ocularis_mobile.data.model
 
+/**
+ * Representa un médico de la clínica.
+ */
 data class DoctorDTO(
     val id: Int?,
     val firstName: String,

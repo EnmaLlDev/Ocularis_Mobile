@@ -1,6 +1,8 @@
 package fp.practices.ocularis_mobile.data.model
 
-// Enum auxiliar para representar el estado de la cita. Ajusta los valores según tu API.
+/**
+ * Estados posibles de una cita médica.
+ */
 enum class StateAppoinment {
     SCHEDULED,
     CONFIRMED,

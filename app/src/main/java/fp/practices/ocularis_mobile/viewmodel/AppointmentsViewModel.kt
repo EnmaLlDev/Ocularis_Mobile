@@ -9,6 +9,9 @@ import fp.practices.ocularis_mobile.data.repository.AppointmentsRepository
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 
+/**
+ * ViewModel para la gestión de citas médicas.
+ */
 class AppointmentsViewModel(
     private val repository: AppointmentsRepository = AppointmentsRepository()
 ) : ViewModel() {
@@ -29,6 +32,10 @@ class AppointmentsViewModel(
         loadAppointments()
     }
 
+    /**
+     * Carga las citas del paciente autenticado o todas las citas.
+     * @param isPatient true para cargar solo las citas propias
+     */
     fun loadAppointments(isPatient: Boolean = false) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -50,6 +57,10 @@ class AppointmentsViewModel(
         }
     }
 
+    /**
+     * Crea una nueva cita médica.
+     * @param appointment datos de la cita
+     */
     fun createAppointment(appointment: AppointmentDTO) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -67,6 +78,11 @@ class AppointmentsViewModel(
         }
     }
 
+    /**
+     * Actualiza una cita existente.
+     * @param id identificador de la cita
+     * @param appointment datos actualizados
+     */
     fun updateAppointment(id: Int, appointment: AppointmentDTO) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -88,6 +104,10 @@ class AppointmentsViewModel(
         }
     }
 
+    /**
+     * Elimina una cita por su identificador.
+     * @param id identificador de la cita
+     */
     fun deleteAppointment(id: Int) {
         viewModelScope.launch {
             _isLoading.value = true

@@ -10,6 +10,9 @@ import fp.practices.ocularis_mobile.data.repository.DoctorsRepository
 import fp.practices.ocularis_mobile.data.repository.PatientsRepository
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel para la gestión de médicos.
+ */
 class DoctorsViewModel(
     private val repository: DoctorsRepository = DoctorsRepository()
 ) : ViewModel() {
@@ -30,6 +33,9 @@ class DoctorsViewModel(
         loadDoctors()
     }
 
+    /**
+     * Carga la lista completa de médicos.
+     */
     fun loadDoctors() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -45,6 +51,10 @@ class DoctorsViewModel(
         }
     }
 
+    /**
+     * Busca médicos por número de licencia.
+     * @param license número de licencia a buscar
+     */
     fun searchByLicense(license: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -60,6 +70,10 @@ class DoctorsViewModel(
         }
     }
 
+    /**
+     * Busca médicos por especialidad.
+     * @param terms término de búsqueda
+     */
     fun searchBySpecialty(terms: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -75,6 +89,10 @@ class DoctorsViewModel(
         }
     }
 
+    /**
+     * Crea un nuevo médico.
+     * @param doctor datos del médico
+     */
     fun createDoctor(doctor: DoctorDTO) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -92,6 +110,11 @@ class DoctorsViewModel(
         }
     }
 
+    /**
+     * Actualiza los datos de un médico.
+     * @param id identificador del médico
+     * @param doctor datos actualizados
+     */
     fun updateDoctor(id: Int, doctor: DoctorDTO) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -113,6 +136,10 @@ class DoctorsViewModel(
         }
     }
 
+    /**
+     * Elimina un médico por su identificador.
+     * @param id identificador del médico
+     */
     fun deleteDoctor(id: Int) {
         viewModelScope.launch {
             _isLoading.value = true

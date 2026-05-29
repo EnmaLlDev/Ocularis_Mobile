@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/**
+ * Estado UI de la autenticación.
+ */
 data class AuthUiState(
     val isCheckingSession: Boolean = true,
     val isLoading: Boolean = false,
@@ -25,6 +28,9 @@ data class AuthUiState(
         get() = !accessToken.isNullOrBlank()
 }
 
+/**
+ * ViewModel que gestiona la autenticación, sesión y estado del usuario.
+ */
 class AuthViewModel(
     private val repository: AuthRepository = AuthRepository()
 ) : ViewModel() {
@@ -56,6 +62,9 @@ class AuthViewModel(
         }
     }
 
+    /**
+     * Restaura la sesión desde tokens locales y renueva si es posible.
+     */
     fun restoreSession() {
         viewModelScope.launch {
             _uiState.update { it.copy(isCheckingSession = true, error = null) }
@@ -107,6 +116,11 @@ class AuthViewModel(
         }
     }
 
+    /**
+     * Inicia sesión con las credenciales proporcionadas.
+     * @param username nombre de usuario
+     * @param password contraseña
+     */
     fun login(username: String, password: String) {
         Logger.d("AuthViewModel", "Intentando login para usuario: $username")
         if (username.isBlank() || password.isBlank()) {
@@ -139,6 +153,9 @@ class AuthViewModel(
         }
     }
 
+    /**
+     * Cierra sesión y limpia el estado de autenticación.
+     */
     fun logout() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
@@ -155,10 +172,18 @@ class AuthViewModel(
         }
     }
 
+    /**
+     * Limpia el mensaje de error del estado.
+     */
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
 
+    /**
+     * Normaliza los roles eliminando prefijos y convirtiendo a mayúsculas.
+     * @param roles lista de roles crudos
+     * @return conjunto de roles normalizados
+     */
     private fun normalizeRoles(roles: List<String>?): Set<String> {
         return roles.orEmpty()
             .map { raw -> raw.trim().uppercase().removePrefix("ROLE_") }

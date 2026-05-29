@@ -68,6 +68,11 @@ import fp.practices.ocularis_mobile.ui.theme.VibrantBlue
 import fp.practices.ocularis_mobile.viewmodel.AppointmentsViewModel
 import java.time.LocalDate
 
+/**
+ * Pantalla de gestión de citas médicas con operaciones CRUD.
+ * @param roles roles del usuario
+ * @param viewModel ViewModel de citas
+ */
 @Composable
 fun AppointmentsScreen(modifier: Modifier = Modifier, roles: Set<String> = emptySet(), viewModel: AppointmentsViewModel = viewModel()) {
     val appointments by viewModel.appointments.observeAsState(emptyList())
@@ -76,7 +81,6 @@ fun AppointmentsScreen(modifier: Modifier = Modifier, roles: Set<String> = empty
     val message by viewModel.message.observeAsState(null)
     val isPatient = roles.contains("PATIENT")
 
-    // Load appointments on first composition with patient flag
     LaunchedEffect(Unit) {
         viewModel.loadAppointments(isPatient)
     }
@@ -108,6 +112,9 @@ fun AppointmentsScreen(modifier: Modifier = Modifier, roles: Set<String> = empty
     }
 }
 
+/**
+ * Contenido principal de citas: lista y operaciones CRUD según permisos.
+ */
 @Composable
 private fun AppointmentsContent(appointments: List<AppointmentDTO>, roles: Set<String>, message: String?, onCreate: (AppointmentDTO) -> Unit, onUpdate: (Int, AppointmentDTO) -> Unit, onDelete: (Int) -> Unit, onReload: () -> Unit) {
     val canRead = RoleAccess.canReadAppointments(roles)
@@ -264,7 +271,7 @@ private fun AppointmentCrudPanel(currentAction: AppointmentAction, appointments:
                         OutlinedTextField(
                             value = dateTime,
                             onValueChange = { dateTime = it },
-                            label = { Text("Fecha/Hora (ISO)") },
+                            label = { Text("Fecha (yyyy-MM-dd)") },
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = VibrantBlue,
@@ -303,6 +310,10 @@ private fun AppointmentCrudPanel(currentAction: AppointmentAction, appointments:
                                 localError = null
                                 val patient = patientId.toIntOrNull() ?: run { localError = "Id de paciente inválido"; return@ElevatedButton }
                                 val doctor = doctorId.toIntOrNull() ?: run { localError = "Id de doctor inválido"; return@ElevatedButton }
+                                if (dateTime.isNotBlank() && !Regex("^\\d{4}-\\d{2}-\\d{2}$").matches(dateTime.trim())) {
+                                    localError = "Fecha inválida. Usa yyyy-MM-dd"
+                                    return@ElevatedButton
+                                }
                                 val statusEnum = status.takeIf { it.isNotBlank() }?.let { runCatching { StateAppoinment.valueOf(it.trim().uppercase()) }.getOrNull() }
                                 val dto = AppointmentDTO(
                                     id.toIntOrNull(),

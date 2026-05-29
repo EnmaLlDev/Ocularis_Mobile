@@ -43,6 +43,11 @@ import fp.practices.ocularis_mobile.ui.theme.MediumText
 import fp.practices.ocularis_mobile.ui.theme.VibrantBlue
 import fp.practices.ocularis_mobile.viewmodel.DoctorsViewModel
 
+/**
+ * Pantalla de gestión de médicos con operaciones CRUD y búsqueda.
+ * @param roles roles del usuario
+ * @param viewModel ViewModel de médicos
+ */
 @Composable
 fun DoctorsScreen(
     modifier: Modifier = Modifier,
@@ -63,6 +68,9 @@ fun DoctorsScreen(
     }
 }
 
+/**
+ * Contenido principal de médicos: lista, búsqueda y operaciones según permisos.
+ */
 @Composable
 private fun DoctorsContent(
     doctors: List<DoctorDTO>,
@@ -96,7 +104,7 @@ private fun DoctorsContent(
 
     val actions = buildList {
         add(DoctorAction.LIST)
-        if (canManage) addAll(listOf(DoctorAction.CREATE, DoctorAction.UPDATE, DoctorAction.DELETE, DoctorAction.SEARCH_LICENSE, DoctorAction.SEARCH_SPECIALTY))
+        if (canManage) addAll(listOf(DoctorAction.UPDATE, DoctorAction.DELETE, DoctorAction.SEARCH_LICENSE, DoctorAction.SEARCH_SPECIALTY))
         add(DoctorAction.RELOAD)
     }
 
@@ -108,6 +116,9 @@ private fun DoctorsContent(
                     onClick = {
                         if (item == DoctorAction.RELOAD) {
                             onReload()
+                            action = DoctorAction.LIST
+                        } else if (!canManage && item != DoctorAction.LIST) {
+                            localError = "Permiso requerido para gestionar"
                             action = DoctorAction.LIST
                         } else {
                             action = item
@@ -212,11 +223,10 @@ private fun DoctorsContent(
 
 private enum class DoctorAction(val label: String) {
     LIST("Lista"),
-    CREATE("Crear"),
+    CREATE("Nuevo paciente"),
     UPDATE("Actualizar"),
     DELETE("Eliminar"),
     SEARCH_LICENSE("Licencia"),
     SEARCH_SPECIALTY("Especialidad"),
     RELOAD("Recargar")
 }
-

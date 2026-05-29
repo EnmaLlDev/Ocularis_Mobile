@@ -1,8 +1,8 @@
 package fp.practices.ocularis_mobile.data.model
 
-import java.time.LocalDate
-import java.time.LocalDateTime
-
+/**
+ * Representa un paciente de la clínica.
+ */
 data class PatientDTO(
     val id: Int?,
     val dni: String?,

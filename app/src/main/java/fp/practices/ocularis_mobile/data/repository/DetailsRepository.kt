@@ -3,6 +3,9 @@ import fp.practices.ocularis_mobile.data.model.DetailsDTO
 import fp.practices.ocularis_mobile.data.network.ApiService
 import fp.practices.ocularis_mobile.data.network.RetrofitClient
 
+/**
+ * Repositorio para operaciones CRUD de detalles clínicos.
+ */
 class DetailsRepository(api: ApiService? = null) {
     private val api: ApiService = api ?: RetrofitClient.requireApiService()
 

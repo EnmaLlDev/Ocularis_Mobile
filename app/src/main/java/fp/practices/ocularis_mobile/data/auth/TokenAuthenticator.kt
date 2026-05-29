@@ -8,11 +8,17 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.Route
 
+/**
+ * Authenticator que renueva el access token automáticamente ante un 401.
+ */
 class TokenAuthenticator(
     private val tokenStore: TokenStore,
     private val authApi: ApiService
 ) : Authenticator {
 
+    /**
+     * Intenta refrescar el token y reintenta la petición original.
+     */
     override fun authenticate(route: Route?, response: Response): Request? {
         val path = response.request.url.encodedPath
         if (path.startsWith("/auth/")) return null
@@ -55,6 +61,9 @@ class TokenAuthenticator(
         }
     }
 
+    /**
+     * Cuenta cuántas respuestas previas existen para evitar bucles infinitos.
+     */
     private fun responseCount(response: Response): Int {
         var result = 1
         var current = response.priorResponse
