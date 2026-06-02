@@ -19,24 +19,28 @@ class AuthHeaderInterceptor(
      */
     override fun intercept(chain: Interceptor.Chain): Response {
         val original = chain.request()
+        
+        // Si ya trae Authorization (puesto por el Authenticator), no hacemos nada
+        if (original.header("Authorization") != null) {
+            Logger.d(TAG, "--> ${original.method} ${original.url} (usando header existente)")
+            return chain.proceed(original)
+        }
+
         val token = runBlocking { tokenStore.getAccessToken() }
-        val hasToken = !token.isNullOrBlank()
-        Logger.d(TAG, "--> ${original.method} ${original.url} (token=${if (hasToken) "present" else "absent"})")
-        val request = if (hasToken) {
+        val request = if (!token.isNullOrBlank()) {
+            Logger.d(TAG, "--> ${original.method} ${original.url} (añadiendo token de Store)")
             original.newBuilder()
                 .header("Authorization", "Bearer $token")
                 .build()
         } else {
+            Logger.d(TAG, "--> ${original.method} ${original.url} (sin token disponible)")
             original
         }
 
         val response = chain.proceed(request)
-        Logger.d(TAG, "<-- ${response.code} ${original.method} ${original.url}")
-
-        // No borrar tokens aquí: un 401 puede significar token expirado.
-        // El Authenticator debe manejar la renovación vía refresh token.
-        if (!original.url.encodedPath.startsWith("/auth/") && response.code == 401) {
-            Logger.e(TAG, "401 detectado en ${original.url.encodedPath} -> permitiendo que TokenAuthenticator maneje la sesión")
+        
+        if (response.code == 401 && !original.url.encodedPath.startsWith("/auth/")) {
+            Logger.e(TAG, "<-- 401 detectado en ${original.url.encodedPath}")
         }
 
         return response

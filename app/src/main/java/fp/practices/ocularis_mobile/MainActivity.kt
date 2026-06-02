@@ -138,6 +138,7 @@ private fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
             AppShell(
                 roles = authState.roles,
                 username = authState.userInfo?.username,
+                doctorId = authState.userInfo?.id,
                 onLogout = authViewModel::logout
             )
         }
@@ -149,6 +150,7 @@ private fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
 private fun AppShell(
     roles: Set<String>,
     username: String?,
+    doctorId: Long?,
     onLogout: () -> Unit
 ) {
     val isAdmin = roles.contains("ADMIN")
@@ -221,10 +223,10 @@ private fun AppShell(
                 .padding(innerPadding)
         ) {
             when (selectedSection) {
-                TopSection.HOME -> AdminScreen(modifier = Modifier.fillMaxSize(), roles = roles)
-                TopSection.PATIENTS -> PatientsScreen(modifier = Modifier.fillMaxSize(), roles = roles)
+                TopSection.HOME -> AdminScreen(modifier = Modifier.fillMaxSize(), roles = roles, doctorId = doctorId)
+                TopSection.PATIENTS -> PatientsScreen(modifier = Modifier.fillMaxSize(), roles = roles, doctorId = doctorId)
                 TopSection.DOCTORS -> DoctorsScreen(modifier = Modifier.fillMaxSize(), roles = roles)
-                TopSection.APPOINTMENTS -> AppointmentsScreen(modifier = Modifier.fillMaxSize(), roles = roles)
+                TopSection.APPOINTMENTS -> AppointmentsScreen(modifier = Modifier.fillMaxSize(), roles = roles, doctorId = doctorId)
                 TopSection.DETAILS -> DetailsScreen(modifier = Modifier.fillMaxSize(), roles = roles)
             }
         }

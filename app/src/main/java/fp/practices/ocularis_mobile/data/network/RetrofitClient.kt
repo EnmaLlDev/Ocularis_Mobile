@@ -45,7 +45,14 @@ object RetrofitClient {
                     .baseUrl(BASE_URL)
                     .addConverterFactory(GsonConverterFactory.create())
 
-                val plainClient = OkHttpClient.Builder().build()
+                val timeoutSeconds = 30L
+
+                val plainClient = OkHttpClient.Builder()
+                    .connectTimeout(timeoutSeconds, java.util.concurrent.TimeUnit.SECONDS)
+                    .readTimeout(timeoutSeconds, java.util.concurrent.TimeUnit.SECONDS)
+                    .writeTimeout(timeoutSeconds, java.util.concurrent.TimeUnit.SECONDS)
+                    .build()
+
                 authApiService = baseRetrofitBuilder
                     .client(plainClient)
                     .build()
@@ -53,6 +60,9 @@ object RetrofitClient {
                 Logger.d(TAG, "authApiService creado correctamente")
 
                 val authenticatedClient = OkHttpClient.Builder()
+                    .connectTimeout(timeoutSeconds, java.util.concurrent.TimeUnit.SECONDS)
+                    .readTimeout(timeoutSeconds, java.util.concurrent.TimeUnit.SECONDS)
+                    .writeTimeout(timeoutSeconds, java.util.concurrent.TimeUnit.SECONDS)
                     .addInterceptor(AuthHeaderInterceptor(tokenStore))
                     .authenticator(TokenAuthenticator(tokenStore, authApiService))
                     .build()

@@ -6,8 +6,8 @@ import fp.practices.ocularis_mobile.data.model.DoctorDTO
 import fp.practices.ocularis_mobile.data.model.PatientDTO
 import fp.practices.ocularis_mobile.data.repository.DoctorsRepository
 import fp.practices.ocularis_mobile.data.repository.PatientsRepository
+import fp.practices.ocularis_mobile.util.ErrorMessageMapper
 import fp.practices.ocularis_mobile.util.Logger
-import retrofit2.HttpException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -89,11 +89,8 @@ class RegisterViewModel(
      */
     private fun extractErrorMessage(ex: Throwable): String {
         return when (ex) {
-            is HttpException -> {
-                val code = ex.code()
-                val body = runCatching { ex.response()?.errorBody()?.string() }.getOrNull()
-                Logger.e(TAG, "HTTP $code - errorBody: $body")
-                "HTTP $code: ${body ?: ex.message()}"
+            is java.net.UnknownHostException -> {
+                "No se puede conectar al servidor"
             }
             else -> ex.message ?: "No se pudo registrar"
         }
@@ -106,4 +103,3 @@ class RegisterViewModel(
         _uiState.update { it.copy(error = null, successMessage = null) }
     }
 }
-

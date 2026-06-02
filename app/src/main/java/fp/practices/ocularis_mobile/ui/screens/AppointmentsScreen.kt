@@ -74,15 +74,31 @@ import java.time.LocalDate
  * @param viewModel ViewModel de citas
  */
 @Composable
-fun AppointmentsScreen(modifier: Modifier = Modifier, roles: Set<String> = emptySet(), viewModel: AppointmentsViewModel = viewModel()) {
+fun AppointmentsScreen(
+    modifier: Modifier = Modifier,
+    roles: Set<String> = emptySet(),
+    doctorId: Long? = null,
+    viewModel: AppointmentsViewModel = viewModel()
+) {
     val appointments by viewModel.appointments.observeAsState(emptyList())
     val isLoading by viewModel.isLoading.observeAsState(false)
     val error by viewModel.error.observeAsState(null)
     val message by viewModel.message.observeAsState(null)
     val isPatient = roles.contains("PATIENT")
+    val isDoctor = roles.contains("DOCTOR")
 
-    LaunchedEffect(Unit) {
-        viewModel.loadAppointments(isPatient)
+    LaunchedEffect(isDoctor, isPatient, doctorId) {
+        when {
+            isDoctor -> viewModel.loadForDoctor(doctorId)
+            else -> viewModel.loadAppointments(isPatient)
+        }
+    }
+
+    val onReload: () -> Unit = {
+        when {
+            isDoctor -> viewModel.loadForDoctor(doctorId)
+            else -> viewModel.loadAppointments(isPatient)
+        }
     }
 
     Box(modifier = modifier.fillMaxSize().background(DarkBackground)) {
@@ -107,7 +123,15 @@ fun AppointmentsScreen(modifier: Modifier = Modifier, roles: Set<String> = empty
                     }
                 }
             }
-            else -> AppointmentsContent(appointments = appointments, roles = roles, message = message, onCreate = viewModel::createAppointment, onUpdate = viewModel::updateAppointment, onDelete = viewModel::deleteAppointment, onReload = { viewModel.loadAppointments(isPatient) })
+            else -> AppointmentsContent(
+                appointments = appointments,
+                roles = roles,
+                message = message,
+                onCreate = viewModel::createAppointment,
+                onUpdate = viewModel::updateAppointment,
+                onDelete = viewModel::deleteAppointment,
+                onReload = onReload
+            )
         }
     }
 }
@@ -221,26 +245,16 @@ private fun AppointmentCrudPanel(currentAction: AppointmentAction, appointments:
     var localError by remember { mutableStateOf<String?>(null) }
 
     val title = when (currentAction) {
-        AppointmentAction.LIST -> "Listado de citas"
+        AppointmentAction.LIST -> "Citas"
         AppointmentAction.CREATE -> "Crear cita"
         AppointmentAction.UPDATE -> "Actualizar cita"
         AppointmentAction.DELETE -> "Eliminar cita"
         AppointmentAction.RELOAD -> "Recargar"
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = LightText)
-        message?.let { Text(text = it, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 4.dp)) }
-        localError?.let { Text(text = it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 4.dp)) }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Card(
-            modifier = Modifier.fillMaxSize(),
-            colors = CardDefaults.cardColors(containerColor = DarkSurface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 when (currentAction) {
                     AppointmentAction.LIST -> AppointmentsList(appointments)
                     AppointmentAction.CREATE, AppointmentAction.UPDATE -> {
@@ -330,9 +344,9 @@ private fun AppointmentCrudPanel(currentAction: AppointmentAction, appointments:
                                     onCreate(dto.copy(id = null))
                                 }
                                 onActionDone()
-                            },
-                            colors = androidx.compose.material3.ButtonDefaults.elevatedButtonColors(containerColor = PrimaryBlue, contentColor = LightText)
-                        ) { Text(if (currentAction == AppointmentAction.UPDATE) "Actualizar" else "Crear") }
+                            }) {
+                            Text(if (currentAction == AppointmentAction.UPDATE) "Actualizar" else "Crear")
+                        }
                     }
                     AppointmentAction.DELETE -> {
                         OutlinedTextField(
@@ -360,8 +374,6 @@ private fun AppointmentCrudPanel(currentAction: AppointmentAction, appointments:
                     AppointmentAction.RELOAD -> { onReload(); onActionDone() }
                 }
             }
-        }
-    }
 }
 
 @Composable
@@ -373,7 +385,11 @@ fun AppointmentsList(appointments: List<AppointmentDTO>) {
         return
     }
 
-    LazyColumn(contentPadding = PaddingValues(8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         items(appointments) { appointment -> AppointmentItem(appointment) }
     }
 }
@@ -391,6 +407,7 @@ fun AppointmentItem(appointment: AppointmentDTO) {
             Text(text = "Paciente: ${appointment.patient?.firstName ?: "N/D"}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp), color = MediumText)
             Text(text = "Doctor: ${appointment.doctor?.firstName ?: "N/D"}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 2.dp), color = MediumText)
             Text(text = "Estado: ${appointment.status?.name ?: "N/D"}", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp), color = MediumText)
+            Text(text = "Id: ${appointment.id?.toString() ?: "Sin Id"}", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp), color = MediumText)
         }
     }
 }
@@ -401,6 +418,19 @@ private enum class AppointmentAction(val label: String) { LIST("Lista"), CREATE(
 @Composable
 fun AppointmentItemPreview() {
     Ocularis_MobileTheme {
-        AppointmentItem(appointment = AppointmentDTO(1, LocalDate.now().toString(), PatientDTO(1, "123", "Jane", null, "Doe", null, null, null, null, null), DoctorDTO(1, "Doc. Jose", "Luis", "Torrente", null, null, null, null, null, "Oftalmología"), "Chequeo", StateAppoinment.CONFIRMED))
+        AppointmentItem(
+            appointment = AppointmentDTO(1,
+                LocalDate.now().toString(),
+                PatientDTO(1,
+                    "123",
+                    "Jane",
+                    null,
+                    "Doe",
+                    null,
+                    null,
+                    null,
+                    null, null),
+                DoctorDTO(1, "Doc. Jose", "Luis", "Torrente", null, null, null, null, null, "Oftalmología"), "Chequeo",
+                StateAppoinment.CONFIRMED))
     }
 }

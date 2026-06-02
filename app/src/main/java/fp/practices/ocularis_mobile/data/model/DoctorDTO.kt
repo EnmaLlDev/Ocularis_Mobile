@@ -13,6 +13,7 @@ data class DoctorDTO(
     val email: String?,
     val phone: String?,
     val licenseNumber: String?,
-    val specialty: String?
+    val specialty: String?,
+    val patientIds: List<Int>? = null
 )
 

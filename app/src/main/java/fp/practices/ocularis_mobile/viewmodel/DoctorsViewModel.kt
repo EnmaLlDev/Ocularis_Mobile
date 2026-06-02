@@ -4,8 +4,12 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import fp.practices.ocularis_mobile.data.model.AppointmentDTO
+import fp.practices.ocularis_mobile.data.model.DetailsDTO
 import fp.practices.ocularis_mobile.data.model.DoctorDTO
 import fp.practices.ocularis_mobile.data.model.PatientDTO
+import fp.practices.ocularis_mobile.data.repository.AppointmentsRepository
+import fp.practices.ocularis_mobile.data.repository.DetailsRepository
 import fp.practices.ocularis_mobile.data.repository.DoctorsRepository
 import fp.practices.ocularis_mobile.data.repository.PatientsRepository
 import kotlinx.coroutines.launch
@@ -14,7 +18,9 @@ import kotlinx.coroutines.launch
  * ViewModel para la gestión de médicos.
  */
 class DoctorsViewModel(
-    private val repository: DoctorsRepository = DoctorsRepository()
+    private val repository: DoctorsRepository = DoctorsRepository(),
+    private val appointmentsRepository: AppointmentsRepository = AppointmentsRepository(),
+    private val detailsRepository: DetailsRepository = DetailsRepository()
 ) : ViewModel() {
 
     private val _doctors = MutableLiveData<List<DoctorDTO>>(emptyList())
@@ -28,6 +34,15 @@ class DoctorsViewModel(
 
     private val _message = MutableLiveData<String?>(null)
     val message: LiveData<String?> = _message
+
+    private val _appointmentsLoading = MutableLiveData(false)
+    val appointmentsLoading: LiveData<Boolean> = _appointmentsLoading
+
+    private val _doctorAppointments = MutableLiveData<List<AppointmentDTO>>(emptyList())
+    val doctorAppointments: LiveData<List<AppointmentDTO>> = _doctorAppointments
+
+    private val _appointmentDetails = MutableLiveData<Map<Int, List<DetailsDTO>>>(emptyMap())
+    val appointmentDetails: LiveData<Map<Int, List<DetailsDTO>>> = _appointmentDetails
 
     init {
         loadDoctors()
@@ -157,6 +172,30 @@ class DoctorsViewModel(
                 _error.value = e.message ?: "Error al eliminar"
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    fun loadAppointmentDetails(doctorId: Int) {
+        viewModelScope.launch {
+            _appointmentsLoading.value = true
+            _doctorAppointments.value = emptyList()
+            _appointmentDetails.value = emptyMap()
+            try {
+                val appointments = appointmentsRepository.getAppointmentsByDoctor(doctorId.toLong())
+                _doctorAppointments.value = appointments
+                val map = mutableMapOf<Int, List<DetailsDTO>>()
+                appointments.forEach { appt ->
+                    val appId = appt.id ?: return@forEach
+                    runCatching { detailsRepository.getByAppointment(appId) }
+                        .onSuccess { map[appId] = it }
+                        .onFailure { map[appId] = emptyList() }
+                }
+                _appointmentDetails.value = map
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Error al cargar detalles de citas"
+            } finally {
+                _appointmentsLoading.value = false
             }
         }
     }

@@ -4,9 +4,9 @@ package fp.practices.ocularis_mobile.ui.auth
  * Utilidad para verificar permisos de acceso según los roles del usuario.
  */
 object RoleAccess {
-    fun canManageDoctors(roles: Set<String>): Boolean = hasAnyRole(roles, "ADMIN")
+    fun canManageDoctors(roles: Set<String>): Boolean = hasAnyRole(roles, "ADMIN", "DOCTOR")
 
-    fun canManagePatients(roles: Set<String>): Boolean = hasAnyRole(roles, "ADMIN")
+    fun canManagePatients(roles: Set<String>): Boolean = hasAnyRole(roles, "ADMIN", "DOCTOR")
 
     fun canManageAppointments(roles: Set<String>): Boolean = hasAnyRole(roles, "ADMIN", "DOCTOR")
 

@@ -6,6 +6,7 @@ import fp.practices.ocularis_mobile.data.network.RetrofitClient
 import fp.practices.ocularis_mobile.data.model.auth.AuthUserInfo
 import fp.practices.ocularis_mobile.data.repository.AuthRepository
 import fp.practices.ocularis_mobile.util.Logger
+import fp.practices.ocularis_mobile.util.ErrorMessageMapper
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -132,13 +133,15 @@ class AuthViewModel(
             _uiState.update { it.copy(isLoading = true, error = null) }
             runCatching {
                 val user = repository.login(username.trim(), password)
+                val fetched = runCatching { repository.fetchMe() }.getOrNull()
+                val finalUser = fetched ?: user
                 val (token, _) = repository.restoreSession()
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         accessToken = token,
-                        userInfo = user,
-                        roles = normalizeRoles(user.roles),
+                        userInfo = finalUser,
+                        roles = normalizeRoles(finalUser.roles),
                         error = null
                     )
                 }
@@ -146,7 +149,7 @@ class AuthViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = ex.message ?: "No se pudo iniciar sesión"
+                        error = ErrorMessageMapper.fromThrowable(ex, "iniciar sesion")
                     )
                 }
             }

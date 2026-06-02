@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import fp.practices.ocularis_mobile.data.model.Dashboard
 import fp.practices.ocularis_mobile.data.model.PatientDTO
+import fp.practices.ocularis_mobile.data.model.DoctorDTO
 import fp.practices.ocularis_mobile.data.repository.DashboardVisualRepository
 import fp.practices.ocularis_mobile.data.repository.AppointmentsRepository
 import fp.practices.ocularis_mobile.data.repository.DoctorsRepository
@@ -36,6 +37,15 @@ class DashboardViewModel(
 	private val _patientData = MutableLiveData<PatientDTO?>(null)
 	val patientData: LiveData<PatientDTO?> = _patientData
 
+	private val _doctorData = MutableLiveData<DoctorDTO?>(null)
+	val doctorData: LiveData<DoctorDTO?> = _doctorData
+
+	private val _doctorLoading = MutableLiveData(false)
+	val doctorLoading: LiveData<Boolean> = _doctorLoading
+
+	private val _doctorError = MutableLiveData<String?>(null)
+	val doctorError: LiveData<String?> = _doctorError
+
 	private val _visualsLoading = MutableLiveData(false)
 	val visualsLoading: LiveData<Boolean> = _visualsLoading
 
@@ -46,10 +56,10 @@ class DashboardViewModel(
 	 * Carga las estadísticas del dashboard filtradas por rol.
 	 * @param roles conjunto de roles del usuario
 	 */
-	fun loadStatsForRoles(roles: Set<String>) {
+	fun loadStatsForRoles(roles: Set<String>, doctorId: Long? = null) {
 		when {
 			roles.contains("ADMIN") -> loadAdminStats()
-			roles.contains("DOCTOR") -> loadDoctorStats()
+			roles.contains("DOCTOR") -> loadDoctorStats(doctorId)
 			roles.contains("PATIENT") -> loadPatientStats()
 			else -> {
 				_dashboard.value = Dashboard.default()
@@ -93,30 +103,30 @@ class DashboardViewModel(
 		}
 	}
 
-	private fun loadDoctorStats() {
+	private fun loadDoctorStats(doctorId: Long?) {
 		viewModelScope.launch {
 			_isLoading.value = true
 			_error.value = null
+			if (doctorId == null) {
+				_error.value = "Id de doctor no disponible"
+				_isLoading.value = false
+				return@launch
+			}
 			supervisorScope {
-				val patientsDeferred = async { runCatching { patientsRepository.getPatients().size } }
-				val appointmentsDeferred = async { runCatching { appointmentsRepository.getAppointments().size } }
+				val appointmentsResult = runCatching {
+					appointmentsRepository.getAppointmentsByDoctor(doctorId)
+				}
 
-				val patientsResult = patientsDeferred.await()
-				val appointmentsResult = appointmentsDeferred.await()
-
-				val firstFailure = listOfNotNull(
-					patientsResult.exceptionOrNull(),
-					appointmentsResult.exceptionOrNull()
-				).firstOrNull()
-
-				if (firstFailure != null) {
-					_error.value = firstFailure.message ?: "Error al cargar el dashboard"
+				if (appointmentsResult.isFailure) {
+					_error.value = appointmentsResult.exceptionOrNull()?.message ?: "Error al cargar el dashboard"
 				} else {
+					val appointments = appointmentsResult.getOrThrow()
+					val uniquePatients = appointments.mapNotNull { it.patient }.distinctBy { it.id }.size
 					val current = _dashboard.value ?: Dashboard.default()
 					_dashboard.value = current.copy(
-						patients = patientsResult.getOrThrow(),
+						patients = uniquePatients,
 						doctors = current.doctors,
-						appointments = appointmentsResult.getOrThrow()
+						appointments = appointments.size
 					)
 				}
 				_isLoading.value = false
@@ -178,6 +188,27 @@ class DashboardViewModel(
 				}
 				.onFailure { _visualsError.value = it.message ?: "Error al cargar las secciones visuales" }
 			_visualsLoading.value = false
+		}
+	}
+
+	/**
+	 * Carga el perfil del médico actual (cuando el usuario tiene rol DOCTOR).
+	 * @param doctorId identificador del médico (puede ser null)
+	 */
+	fun loadDoctorProfile(doctorId: Int?) {
+		if (doctorId == null) {
+			_doctorData.value = null
+			_doctorError.value = null
+			return
+		}
+
+		viewModelScope.launch {
+			_doctorLoading.value = true
+			_doctorError.value = null
+			runCatching { doctorsRepository.getDoctor(doctorId) }
+				.onSuccess { fetched -> _doctorData.value = fetched }
+				.onFailure { _doctorError.value = it.message ?: "Error al cargar datos del doctor" }
+			_doctorLoading.value = false
 		}
 	}
 }

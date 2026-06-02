@@ -56,6 +56,7 @@ import androidx.compose.foundation.verticalScroll
 fun PatientsScreen(
     modifier: Modifier = Modifier,
     roles: Set<String> = emptySet(),
+    doctorId: Long? = null,
     viewModel: PatientsViewModel = viewModel()
 ) {
     val patients by viewModel.patients.observeAsState(emptyList())
@@ -63,11 +64,21 @@ fun PatientsScreen(
     val error by viewModel.error.observeAsState(null)
     val message by viewModel.message.observeAsState(null)
     val isPatient = roles.contains("PATIENT")
+    val isDoctor = roles.contains("DOCTOR")
     val canRead = RoleAccess.canReadPatients(roles)
 
-    LaunchedEffect(canRead, isPatient) {
-        if (canRead) {
-            viewModel.loadPatients(isPatient = isPatient)
+    LaunchedEffect(canRead, isPatient, isDoctor, doctorId) {
+        if (!canRead) return@LaunchedEffect
+        when {
+            isDoctor -> viewModel.loadForDoctor(doctorId)
+            else -> viewModel.loadPatients(isPatient = isPatient)
+        }
+    }
+
+    val onReload: () -> Unit = {
+        when {
+            isDoctor -> viewModel.loadForDoctor(doctorId)
+            else -> viewModel.loadPatients(isPatient = isPatient)
         }
     }
 
@@ -83,7 +94,7 @@ fun PatientsScreen(
                 onUpdate = viewModel::updatePatient,
                 onDelete = viewModel::deletePatient,
                 onSearchByAddress = viewModel::searchByAddress,
-                onReload = { viewModel.loadPatients(isPatient = isPatient) }
+                onReload = onReload
             )
         }
     }
@@ -210,9 +221,6 @@ private fun PatientCrudPanel(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Text("Pacientes", style = MaterialTheme.typography.titleLarge, color = LightText)
-        message?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
-        localError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 
         when (currentAction) {
             PatientAction.LIST -> {
@@ -240,7 +248,9 @@ private fun PatientCrudPanel(
                             Text(formSubtitle, style = MaterialTheme.typography.bodyMedium, color = MediumText)
                         }
                     }
-                    OutlinedTextField(value = id, onValueChange = { id = it }, label = { Text("Id (solo actualizar)") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                    if (currentAction == PatientAction.UPDATE) {
+                        OutlinedTextField(value = id, onValueChange = { id = it }, label = { Text("Id paciente") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                    }
                     OutlinedTextField(value = firstName, onValueChange = { firstName = it }, label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
                     OutlinedTextField(value = lastName, onValueChange = { lastName = it }, label = { Text("Apellidos") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
                     OutlinedTextField(value = dni, onValueChange = { dni = it }, label = { Text("DNI") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
@@ -249,21 +259,28 @@ private fun PatientCrudPanel(
                     OutlinedTextField(value = address, onValueChange = { address = it }, label = { Text("Dirección") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
                     Spacer(modifier = Modifier.height(12.dp))
                     ElevatedButton(onClick = {
+                        val trimmedFirstName = firstName.trim()
+                        val trimmedLastName = lastName.trim()
+                        if (trimmedFirstName.isBlank() || trimmedLastName.isBlank()) {
+                            localError = "Nombre y apellidos son obligatorios"
+                            return@ElevatedButton
+                        }
+                        
                         val dto = PatientDTO(
-                            id = id.toIntOrNull(),
-                            dni = dni.ifBlank { null },
-                            firstName = firstName,
+                            id = id.toIntOrNull() ?: 0,
+                            dni = dni.trim().ifBlank { null },
+                            firstName = trimmedFirstName,
                             secondName = null,
-                            lastName = lastName,
+                            lastName = trimmedLastName,
                             secondLastName = null,
-                            email = email.ifBlank { null },
-                            phone = phone.ifBlank { null },
+                            email = email.trim().ifBlank { null },
+                            phone = phone.trim().ifBlank { null },
                             birthDate = null,
-                            address = address.ifBlank { null }
+                            address = address.trim().ifBlank { null }
                         )
                         if (currentAction == PatientAction.UPDATE) {
-                            val targetId = dto.id
-                            if (targetId == null) {
+                            val targetId = id.toIntOrNull()
+                            if (targetId == null || targetId == 0) {
                                 localError = "Id requerido para actualizar"
                                 return@ElevatedButton
                             }

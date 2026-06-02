@@ -77,6 +77,9 @@ interface ApiService {
     @GET("/api/appointment/getAll")
     suspend fun getAppointments(): List<AppointmentDTO>
 
+    @GET("/api/appointment/doctor/{doctorId}")
+    suspend fun getAppointmentsByDoctor(@Path("doctorId") doctorId: Long): List<AppointmentDTO>
+
     @GET("/api/appointment/{id}")
     suspend fun getAppointment(@Path("id") id: Int): AppointmentDTO
 
@@ -91,6 +94,9 @@ interface ApiService {
 
     @GET("/api/details/getAll")
     suspend fun getDetails(): List<DetailsDTO>
+
+    @GET("/api/details/doctor/{doctorId}")
+    suspend fun getDetailsByDoctor(@Path("doctorId") doctorId: Long): List<DetailsDTO>
 
     @GET("/api/details/{id}")
     suspend fun getDetail(@Path("id") id: Int): DetailsDTO

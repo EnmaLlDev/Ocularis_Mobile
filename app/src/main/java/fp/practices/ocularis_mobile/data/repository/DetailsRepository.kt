@@ -11,6 +11,7 @@ class DetailsRepository(api: ApiService? = null) {
 
     suspend fun getDetails(): List<DetailsDTO> = api.getDetails()
     suspend fun getMyDetails(): List<DetailsDTO> = api.getMyDetails()
+    suspend fun getDetailsByDoctor(doctorId: Long): List<DetailsDTO> = api.getDetailsByDoctor(doctorId)
     suspend fun getDetail(id: Int): DetailsDTO = api.getDetail(id)
     suspend fun getByAppointment(appointmentId: Int): List<DetailsDTO> = api.getDetailsByAppointment(appointmentId)
     suspend fun create(detail: DetailsDTO): DetailsDTO = api.createDetail(detail)

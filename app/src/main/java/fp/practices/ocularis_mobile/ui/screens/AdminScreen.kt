@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+// ...existing imports...
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,6 +41,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import fp.practices.ocularis_mobile.data.model.ContactInfo
 import fp.practices.ocularis_mobile.data.model.Dashboard
 import fp.practices.ocularis_mobile.data.model.PatientDTO
+import fp.practices.ocularis_mobile.data.model.DoctorDTO
 import fp.practices.ocularis_mobile.ui.theme.DarkBackground
 import fp.practices.ocularis_mobile.ui.theme.DarkSurface
 import fp.practices.ocularis_mobile.ui.theme.LightText
@@ -59,7 +61,8 @@ import fp.practices.ocularis_mobile.viewmodel.DashboardViewModel
 fun AdminScreen(
     modifier: Modifier = Modifier,
     roles: Set<String> = emptySet(),
-    viewModel: DashboardViewModel = viewModel()
+    viewModel: DashboardViewModel = viewModel(),
+    doctorId: Long? = null
 ) {
     val dashboard by viewModel.dashboard.observeAsState()
     val isLoading by viewModel.isLoading.observeAsState(false)
@@ -67,11 +70,17 @@ fun AdminScreen(
     val visualsLoading by viewModel.visualsLoading.observeAsState(false)
     val visualsError by viewModel.visualsError.observeAsState(null)
     val patientData by viewModel.patientData.observeAsState(null)
+    val doctorData by viewModel.doctorData.observeAsState(null)
+    val doctorLoading by viewModel.doctorLoading.observeAsState(false)
+    val doctorError by viewModel.doctorError.observeAsState(null)
 
-    LaunchedEffect(roles) {
+    LaunchedEffect(roles, doctorId) {
         if (roles.isNotEmpty()) {
-            viewModel.loadStatsForRoles(roles)
+            viewModel.loadStatsForRoles(roles, doctorId)
             viewModel.loadVisualContent()
+        }
+        if (roles.contains("DOCTOR")) {
+            viewModel.loadDoctorProfile(doctorId?.toInt())
         }
     }
 
@@ -92,6 +101,9 @@ fun AdminScreen(
                 visualsLoading = visualsLoading,
                 visualsError = visualsError,
                 patientData = patientData,
+                doctorData = doctorData,
+                doctorLoading = doctorLoading,
+                doctorError = doctorError,
                 onReload = { viewModel.loadStatsForRoles(roles) },
                 onReloadVisuals = viewModel::loadVisualContent
             )
@@ -109,6 +121,9 @@ private fun DashboardContent(
     visualsLoading: Boolean,
     visualsError: String?,
     patientData: PatientDTO?,
+    doctorData: DoctorDTO?,
+    doctorLoading: Boolean,
+    doctorError: String?,
     onReload: () -> Unit,
     onReloadVisuals: () -> Unit
 ) {
@@ -209,8 +224,27 @@ private fun DashboardContent(
                 item { OperationsSection(visualsResolved.operations) }
             }
             isDoctor -> {
-                item { ContactSection(visualsResolved.contact) }
-                item { OperationsSection(visualsResolved.operations) }
+                if (doctorLoading) {
+                    item {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                            CircularProgressIndicator(color = VibrantBlue)
+                        }
+                    }
+                } else if (doctorData != null) {
+                    item { ContactSection(doctorData) }
+                } else {
+                    item { ContactSection(visualsResolved.contact) }
+                    doctorError?.let { errorMsg ->
+                        item {
+                            Text(
+                                text = errorMsg,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
+                // Do not show OperationsSection for doctors
             }
             isPatient -> {
                 if (patientData != null) {
@@ -233,7 +267,10 @@ private fun DashboardContent(
 @Composable
 private fun PatientInfoSection(patient: PatientDTO) {
     Card(
-        modifier = Modifier.clip(RoundedCornerShape(16.dp)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .clip(RoundedCornerShape(16.dp)),
         colors = CardDefaults.cardColors(containerColor = DarkSurface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -262,7 +299,10 @@ private fun PatientInfoSection(patient: PatientDTO) {
 @Composable
 private fun ContactSection(contact: ContactInfo) {
     Card(
-        modifier = Modifier.clip(RoundedCornerShape(16.dp)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .clip(RoundedCornerShape(16.dp)),
         colors = CardDefaults.cardColors(containerColor = DarkSurface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -281,6 +321,38 @@ private fun ContactSection(contact: ContactInfo) {
             Text("Email: ${contact.email}", style = MaterialTheme.typography.bodyMedium, color = MediumText)
             Text("Dirección: ${contact.address}", style = MaterialTheme.typography.bodyMedium, color = MediumText)
             Text("Horario: ${contact.hours}", style = MaterialTheme.typography.bodyMedium, color = MediumText)
+        }
+    }
+}
+
+@Composable
+private fun ContactSection(doctor: DoctorDTO) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .clip(RoundedCornerShape(16.dp)),
+        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                "Contacto",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = LightText
+            )
+            val fullName = listOfNotNull(doctor.firstName, doctor.secondName, doctor.lastName, doctor.secondLastName)
+                .joinToString(" ")
+            Text(fullName, style = MaterialTheme.typography.bodyMedium, color = MediumText)
+            doctor.specialty?.let { Text("Especialidad: $it", style = MaterialTheme.typography.bodyMedium, color = MediumText) }
+            doctor.licenseNumber?.let { Text("Nº licencia: $it", style = MaterialTheme.typography.bodyMedium, color = MediumText) }
+            doctor.phone?.let { Text("Tel: $it", style = MaterialTheme.typography.bodyMedium, color = MediumText) }
+            doctor.email?.let { Text("Email: $it", style = MaterialTheme.typography.bodyMedium, color = MediumText) }
+            doctor.dni?.let { Text("DNI: $it", style = MaterialTheme.typography.bodyMedium, color = MediumText) }
         }
     }
 }
@@ -369,7 +441,7 @@ private fun DashboardStatsSummary(dashboard: Dashboard?, roles: Set<String>) {
 private fun AdminSummary(dashboard: Dashboard?) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         StatCard(title = "Pacientes", value = dashboard?.patients ?: 0, color = VibrantGreen)
         StatCard(title = "Doctores", value = dashboard?.doctors ?: 0, color = VibrantOrange)
