@@ -14,7 +14,7 @@ object ErrorMessageMapper {
             is HttpException -> fromHttpException(throwable, operation)
             is SocketTimeoutException -> "El servidor tarda demasiado en responder. Intenta de nuevo."
             is ConnectException -> "No se pudo conectar con el servidor. Revisa tu conexion."
-            is IOException -> "Ocurrio un problema de red. Intenta de nuevo."
+            is IOException -> "Ocurrio un proble ma de red. Intenta de nuevo."
             else -> operation?.let { "No se pudo $it. Intenta mas tarde." }
                 ?: "Ocurrio un problema inesperado. Intenta de nuevo."
         }
@@ -23,7 +23,7 @@ object ErrorMessageMapper {
     private fun fromHttpException(exception: HttpException, operation: String?): String {
         return when (exception.code()) {
             400 -> "Datos invalidos. Revisa el formulario."
-            401 -> "Tu sesion ha expirado. Inicia sesion de nuevo."
+            401 -> "Error al validar tus datos. Inicia sesion de nuevo."
             403 -> operation?.let { "No tienes permisos para $it." }
                 ?: "No tienes permisos para realizar esta accion."
             404 -> "No encontramos la informacion solicitada."

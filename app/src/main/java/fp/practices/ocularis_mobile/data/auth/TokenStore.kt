@@ -41,8 +41,7 @@ class TokenStore(private val context: Context) {
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             )
         }
-        // Si el archivo de prefs cifrado está corrupto (p. ej. tras reinstalar la app en debug),
-        // lo borramos y empezamos de cero — el usuario deberá volver a hacer login.
+
         try {
             buildPrefs()
         } catch (e: Exception) {

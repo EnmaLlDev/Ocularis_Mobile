@@ -66,39 +66,39 @@ class TokenAuthenticator(
                     .build()
             }
 
-            Logger.d(TAG, "🔄 Attempting to refresh token...")
+            Logger.d(TAG, "Attempting to refresh token...")
             val refreshed = runCatching {
                 runBlocking { authApi.refresh(RefreshRequest(currentRefresh)) }
             }.onSuccess {
-                Logger.d(TAG, "✅ Refresh success.")
+                Logger.d(TAG, "Refresh success.")
                 // Decodificar el payload del JWT (es la parte del medio separada por puntos)
                 val payloadB64 = it.accessToken.split(".")[1]
                 val decodedPayload = String(android.util.Base64.decode(payloadB64, android.util.Base64.DEFAULT))
                 Logger.d(TAG, "🔍 JWT Payload del nuevo token: $decodedPayload")
                 Logger.d(TAG, "✅ Refresh success. New token: ${it.accessToken.take(10)}...")
             }.onFailure { ex ->
-                Logger.e(TAG, "❌ Refresh failed: ${ex.message}")
+                Logger.e(TAG, "Refresh failed: ${ex.message}")
             }.getOrNull()
 
             if (refreshed == null) {
-                Logger.e(TAG, "❌ Refresh returned null. Clearing session.")
+                Logger.e(TAG, "Refresh returned null. Clearing session.")
                 runBlocking { tokenStore.clearAll() }
                 return null
             }
 
             if (refreshed.accessToken == requestAccessToken) {
-                Logger.e(TAG, "❌ Server returned the SAME expired token. Avoiding infinite loop.")
+                Logger.e(TAG, "Server returned the SAME expired token. Avoiding infinite loop.")
                 runBlocking { tokenStore.clearAll() }
                 return null
             }
 
-            Logger.d(TAG, "💾 Saving new tokens...")
+            Logger.d(TAG, "Saving new tokens...")
             runBlocking {
                 tokenStore.saveAccessToken(refreshed.accessToken)
                 refreshed.refreshToken?.let { tokenStore.saveRefreshToken(it) }
             }
 
-            Logger.d(TAG, "🚀 Retrying original request with NEW token")
+            Logger.d(TAG, "Retrying original request with NEW token")
             
             // Construimos el reintento asegurándonos de mantener el body original
             val newRequest = response.request.newBuilder()

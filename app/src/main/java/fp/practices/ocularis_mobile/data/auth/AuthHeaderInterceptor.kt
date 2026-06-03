@@ -20,7 +20,6 @@ class AuthHeaderInterceptor(
     override fun intercept(chain: Interceptor.Chain): Response {
         val original = chain.request()
         
-        // Si ya trae Authorization (puesto por el Authenticator), no hacemos nada
         if (original.header("Authorization") != null) {
             Logger.d(TAG, "--> ${original.method} ${original.url} (usando header existente)")
             return chain.proceed(original)

@@ -513,7 +513,7 @@ fun DashboardScreen(navController: NavController) {
             )
         }
 
-        // --- Diálogo: Éxito en Envío ---
+        // Éxito en Envío
         if (sendMessage != null || showSuccess) {
             AlertDialog(
                 onDismissRequest = {
@@ -535,7 +535,7 @@ fun DashboardScreen(navController: NavController) {
             )
         }
 
-        // --- Diálogo: Error en Envío ---
+        //Error en Envío
         if (sendError != null) {
             AlertDialog(
                 onDismissRequest = { contactViewModel.clearError() },
